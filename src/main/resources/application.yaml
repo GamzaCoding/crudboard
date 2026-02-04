@@ -3,7 +3,7 @@ spring:
     name: crudboard
 
   datasource:
-    url: jdbc:h2:file:./data/crudbord;MODE=MySQL
+    url: jdbc:h2:file:./data/crudboard;MODE=MySQL
     driver-class-name: org.h2.Driver
     username: sa
     password:
