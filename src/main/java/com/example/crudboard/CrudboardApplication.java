@@ -9,5 +9,4 @@ public class CrudboardApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(CrudboardApplication.class, args);
 	}
-
 }
