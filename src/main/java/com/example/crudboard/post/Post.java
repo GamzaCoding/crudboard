@@ -64,6 +64,12 @@ public class Post {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /*
+    단순 setter 대신 "수정"이라는 행위를 엔티티에 캡슐화 -> 근데 setter 대신에 객체에 메시지를 던지라고 하지 않았나?
+    답변 : update는 setter가 아니다!
+    현재는 단순하게 맴버변수에 값을 대입하는 것으로 setter처럼 보일 수 있지만, 이 안에 검증로직 등 확장가능성이 있고,
+    update라는 의미로 객체 메서드를 통해 캡슐화를 했다고 볼 수 있다.
+     */
     public void update(String title, String content) {
         this.title = title;
         this.content = content;

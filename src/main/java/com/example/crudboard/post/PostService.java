@@ -4,6 +4,7 @@ import com.example.crudboard.global.exception.PostNotFoundException;
 import com.example.crudboard.post.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
+import com.example.crudboard.post.dto.PostUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -114,7 +115,39 @@ public class PostService {
     public PageResponse<PostResponse> list(Pageable pageable) {
         Page<PostResponse> page = postRepository.findAll(pageable)
                 .map(PostResponse::from);
-
         return PageResponse.from(page);
+    }
+
+    /*
+    왜 save()가 없는데도 DB가 바뀌나?
+    findById()로 가져온 post는 트랜잭션 안에서 영속 상태
+    값이 바뀌면 Hibernate가 dirty checking(변경감지)로 커밋 시 UPDATE 쿼리를 자동으로 수행
+    조회 -> 엔티티 변경 -> 커밋 시 자동으로 UPDATE 쿼리 날림
+     */
+    public void update(Long id, PostUpdateRequest request) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+        post.update(request.title(), request.content());
+    }
+
+    /*
+    왜 existsById()로 먼저 확인하지?
+    deleteById() 자체도 없는 id면 예외가 날 수 있는데, 우리는 "없는 글이면 404로 통일"하고 싶음, 그래서 삭제 전에 존재여부 확인, 없으면 우리가 만든 예외로 처리
+     */
+    /*
+    삭제 로직 시
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+        postRepository.delete(post);
+
+        위와 같은 로직으로도 처리할 수 있지만 select *로 컬럼을 다 가져오니까 단순 존재확인(existsById)보다 조회 비용이 크다
+        엔티티가 관계를 많이 갖고 있으면(연간관계) 설정에 따라 무거워질 수 있다.
+        단, 삭제 전 "검증/권한" 같은 로직이 필요하다면, 엔티티를 가져오는 이 로직이 더 좋을 수 있다.
+     */
+    public void delete(Long id) {
+        if (!postRepository.existsById(id)) {
+            throw new PostNotFoundException(id);
+        }
+        postRepository.deleteById(id);
     }
 }
