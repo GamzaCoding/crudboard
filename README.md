@@ -2,7 +2,7 @@
 SpringBoot 기반 CRUD 게시판 REST API 연습 프로젝트 입니다.
 게시글(Post)에 대해 생성/조회/수정/삭제(CRUD)와 목록 조회(페이징), 예외 처리, 통합 테스트(MockMvc)를 구현했습니다.
 ---
-## TecH Stack
+## Tech Stack
 * Java 21
 * Spring Boot 4.0.2
 * Spring Web(Spring MVC)
@@ -41,7 +41,7 @@ Base URL:http://localhost:8080
 * Response
   * 201 Created
   * Location: /api/posts/{id}
----
+
 ### Get Post
 * GET /api/posts/{id}
 * Response: 200 OK
@@ -55,7 +55,7 @@ Base URL:http://localhost:8080
   "updatedAt": "2026-02-03T20:05:27.098931"
 }
 ```
----
+
 ### List Posts(Paging)
 * GET /api/posts?page=0&size=5&sort=createAt,desc
 * Response: 200 OK
@@ -78,7 +78,7 @@ Base URL:http://localhost:8080
   "last": true
 }
 ```
----
+
 ### Update Post
 * PUT /api/posts/{id}
 * Request Body
@@ -89,7 +89,7 @@ Base URL:http://localhost:8080
 }
 ```
 * Response: 204 No Content
----
+
 ### Delete Post
 * DELETE /api/posts/{id}
 * Response: 204 No Content
@@ -155,14 +155,12 @@ JPA(Hibernate)가 "DB 테이블에도 updated_at 컬럼 존해할거다"라고 �
   
 결과적으로 500 Internal Server Error이 나온다.
 
----
-
 #### 왜 ddl-auto:update인데도 이런 문제가 생길까?
 ddl-auto: update는 "가능한 범위에서 스키마를 맞춰보겠다" 정도라서,
 * 상황에 따라 컬럼 추가가 안 되거나,
 * 이미 만들어진 테이블/인덱스/제약조건과 충돌하면 제대로 반영 안 될 떄가 있다.
 * 특히 파일 DB로 계속 누적해서 쓰면, 스키마 변경이 반복되면서 꼬일 가능성이 커진다.
----
+
 #### 해결방법
 ##### 방법1
 * H2 콘솔에서 DROP TABLE POSTS;
