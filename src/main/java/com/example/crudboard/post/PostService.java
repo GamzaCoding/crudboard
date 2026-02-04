@@ -1,8 +1,11 @@
 package com.example.crudboard.post;
 
 import com.example.crudboard.global.exception.PostNotFoundException;
+import com.example.crudboard.post.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +28,7 @@ public class PostService {
 
     public Long create(PostCreateRequest request) {
         Post post = new Post(request.title(), request.content());
-        // 이 부분에서 save를 하고 id도 반환하는 건가?
+        // 이 부분에서 save를 하고 id도 반환하는 건가? -> id를 반환하는게 아니라 엔티티 자체(Post 객체)를 반환한다.
         return postRepository.save(post).getId();
         /*
         JpaRepository의 save() 시그니처는 <S extend T> S save(S entity); 이다.
@@ -33,18 +36,11 @@ public class PostService {
          */
     }
 
-    @Transactional(readOnly = true)
-    public PostResponse get(Long id) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
-        return PostResponse.from(post);
-    }
     /*
     @Transactional(readOnly = true)
     "이 메서드는 DB를 읽기만 할 거다" 라는 힌트
     장점 : Hibernate가 변경감지(dirty checking) 같은 작업을 줄여서 좀 더 가벼움
      */
-
     /*
     dirty checking은 뭘까?
     트랜잭션 안에서 조회한 엔티티의 값이 바뀌었는지 Hibernate가 자동으로 감지해서, 커밋 시점에 UPDATE SQL을 알아서 날리는 기능
@@ -81,4 +77,44 @@ public class PostService {
     그래서 수정 로직에서 save를 다시 호출하지 않아도 변경이 반영될 수 있습니다.
     조회 전용 트랜잭션(readOnly)은 이런 변경 감지 비용을 줄이는 데 도움이 됩니다.
      */
+    @Transactional(readOnly = true)
+    public PostResponse get(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new PostNotFoundException(id));
+        return PostResponse.from(post);
+    }
+
+    /*
+    JpaRepository는 findAll(Pageable pageable)을 기본적으로 제공한다.
+    이 메서드 내부적으로 DB에 LIMIT/OFFSET + ORDER BY가 들어간 SQL을 만들어서 실행한다.
+    ex) select * from posts
+        order by created_at desc
+        limit 5 offset 0;
+     */
+    /*
+    Page는 뭐야?
+    Page<T>는 페이지 결과 + 메타데이터를 가지고 있는 스프링이 제공하는 객체다.
+    content, totalElements, totalPages 등등 여러 메타데이터를 페이지 결과와 같이 가지고 있다.
+    왜냐하면 프론트에서 UI를 만들때 이런 메타데이터들이 필요하기 때문이다.
+     */
+    /*
+    totalElements/totalPages는 어떻게 계산되는가?
+    이 메타데이터를 만들려면 DB에서 "전체 글 수"가 필요하다. 그래서 JPA는 보통 페이징 요청을 받으면 쿼리를 2번 실행하는 경우가 많다.
+    1. 실제 페이지 데이터 조회 쿼리
+    2. 전체 개수 조회 쿼리(count)
+    참고 : 이 때문에 Page는 편하지만 count 쿼리 비용이 있다는 점이 있다. 그게 부담될 때는 Slice를 쓰기도 한다.
+     */
+    /*
+    findAll(pageable)의 결과는 Page<Post>다. 여기서 map을 통해서 Dto로 변경해주는 것.
+    이때 Page에서 제공하는 map()은 content리스트에 있는 각 Post를 PostResponse로 변환해주고, 페이징 메타데이터는 그대로 유지해서 Page<PostResponse>를 만들어 준다
+     */
+    // Page<Post> -> Page<PostResponse> 이렇게 변환된 것이 val page로 되고
+    // PageResponse.from을 통해 PageResponse<PostResponse>로 변환된다.
+    @Transactional(readOnly = true)
+    public PageResponse<PostResponse> list(Pageable pageable) {
+        Page<PostResponse> page = postRepository.findAll(pageable)
+                .map(PostResponse::from);
+
+        return PageResponse.from(page);
+    }
 }

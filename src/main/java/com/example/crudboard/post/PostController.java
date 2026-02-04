@@ -1,9 +1,12 @@
 package com.example.crudboard.post;
 
+import com.example.crudboard.post.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +24,7 @@ public class PostController {
     public PostController(PostService postService) {
         this.postService = postService;
     }
-        /*
+    /*
     ResponseEntity<T>는 스프링이 제공하는 HTTP응답을 내가 직접 조립하는 박스이다.
     여기에 담을 수 있는 것
     1. 상태코드(201, 404 등)
@@ -29,7 +32,6 @@ public class PostController {
     3. 바디(JSON 데이터 등)
     위 create 메서드 시그니처가 ResponseEntity<Void>인 이유는 응답 바디를 비울 거라서 void인 것이다.
      */
-
     /*
     @RestController에서 객체를 리턴하면 스프링이
     1. 이건 응답 바디로 내보내야 겠다 라고 판단.
@@ -37,18 +39,12 @@ public class PostController {
     3. 기본적으로 Jackson이 객체에서 JSON으로 직렬화 해줌
     그래서 PostResponse 같은 record를 리턴하면 자동으로 JSON이 됨
      */
-
     @PostMapping
     public ResponseEntity<Void> create(@RequestBody @Valid PostCreateRequest request) {
         Long id = postService.create(request);
         return ResponseEntity.created(URI.create("/api/posts/" + id)).build();
     }
 
-    @GetMapping("/{id}")
-    public PostResponse get(@PathVariable Long id) {
-        return postService.get(id);
-    }
-    // PostResponse라는 객체로 리턴하는 이유를 자세하게 확인 해야햔다.
     /*
     PostResponse라는 객체로 리턴하는데 왜 JSON이 되나?
     컨트롤러가 PostResponse 객체를 반환하면
@@ -61,13 +57,11 @@ public class PostController {
     2. 날짜/타입 직렬화 문제(LocalDateTime 등)
     3. Content-Type/Accept 헤더 불일치 문제
      */
-
     /*
     직렬화(Serialization)는 메모리 안의 객체(자바 객체)를 전송/저장할 수 있는 형태(문자열이나 바이트)로 바꾸는 것
     반대로 그걸 다시 객체로 만드는 것은 역직렬화(Deserialization)
     자바 객체 -> JSON 문자열로 바꾸는 과정 = 직렬화
      */
-
     /*
     @PathVariable
     말 그대로 경로 변수 이다.
@@ -90,4 +84,19 @@ public class PostController {
     특정 ID기반 상세 조회 -> @PathVariable
     여러 조건을 기반으로 조회 -> @RequestParam
      */
+    @GetMapping("/{id}")
+    public PostResponse get(@PathVariable Long id) {
+        return postService.get(id);
+    }
+
+    /*
+    Pageable이 뭐지?
+    스프링 데이터에서 제공하는 "페이징 요청 정보"객체다. 클라이언트가 URL로 보낸 값을 스프링이 자동으로 파싱해서 만들어 준다.
+    예) GET /api/posts?page=0&size=5&sort=createdAt, desc
+    즉, 컨트롤러에서 Pageable을 파라미터로 받는 순간 요청이 원하는 페이지 조건이 이미 객체로 준비돼서 들어온다.
+     */
+    @GetMapping
+    public PageResponse<PostResponse> list(Pageable pageable) {
+        return postService.list(pageable);
+    }
 }
