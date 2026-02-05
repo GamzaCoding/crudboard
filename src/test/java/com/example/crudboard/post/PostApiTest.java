@@ -153,4 +153,34 @@ public class PostApiTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
     }
+
+    @Test
+    void listPost_withKeyword_filtersResult() throws Exception {
+        String firstSampleBody = """
+                {
+                    "title": "spring",
+                    "content": "boot"
+                }
+                """;
+        mockMvc.perform(post("/api/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(firstSampleBody))
+                .andExpect(status().isCreated());
+
+        String secondSampleBody = """
+                {
+                    "title": "java",
+                    "content": "jpa"
+                }
+                """;
+        mockMvc.perform(post("/api/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(secondSampleBody))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/posts").param("keyword", "spring"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.content[0].title", containsStringIgnoringCase("spring")));
+    }
 }

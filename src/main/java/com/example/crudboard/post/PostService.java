@@ -1,7 +1,8 @@
 package com.example.crudboard.post;
 
+import ch.qos.logback.core.util.StringUtil;
 import com.example.crudboard.global.exception.PostNotFoundException;
-import com.example.crudboard.post.dto.PageResponse;
+import com.example.crudboard.global.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional
@@ -111,10 +113,21 @@ public class PostService {
      */
     // Page<Post> -> Page<PostResponse> 이렇게 변환된 것이 val page로 되고
     // PageResponse.from을 통해 PageResponse<PostResponse>로 변환된다.
+//    @Transactional(readOnly = true)
+//    public PageResponse<PostResponse> list(Pageable pageable) {
+//        Page<PostResponse> page = postRepository.findAll(pageable)
+//                .map(PostResponse::from);
+//        return PageResponse.from(page);
+//    }
+
     @Transactional(readOnly = true)
-    public PageResponse<PostResponse> list(Pageable pageable) {
-        Page<PostResponse> page = postRepository.findAll(pageable)
-                .map(PostResponse::from);
+    public PageResponse<PostResponse> list(String keyword, Pageable pageable) {
+        var page = StringUtils.hasText(keyword)
+                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(keyword, keyword, pageable)
+                .map(PostResponse::from)
+                : postRepository.findAll(pageable)
+                        .map(PostResponse::from);
+
         return PageResponse.from(page);
     }
 

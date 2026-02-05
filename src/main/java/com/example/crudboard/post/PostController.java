@@ -1,7 +1,7 @@
 package com.example.crudboard.post;
 
 import com.example.crudboard.global.exception.ApiExceptionHandler.ErrorResponse;
-import com.example.crudboard.post.dto.PageResponse;
+import com.example.crudboard.global.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Posts", description = "게시글 CRUD API")
@@ -113,10 +114,18 @@ public class PostController {
     예) GET /api/posts?page=0&size=5&sort=createdAt, desc
     즉, 컨트롤러에서 Pageable을 파라미터로 받는 순간 요청이 원하는 페이지 조건이 이미 객체로 준비돼서 들어온다.
      */
+//    @Operation(summary = "게시글 목록 조회(페이징)")
+//    @GetMapping
+//    public PageResponse<PostResponse> list(Pageable pageable) {
+//        return postService.list(pageable);
+//    }
+
     @Operation(summary = "게시글 목록 조회(페이징)")
     @GetMapping
-    public PageResponse<PostResponse> list(Pageable pageable) {
-        return postService.list(pageable);
+    public PageResponse<PostResponse> list(
+            @RequestParam(required = false) String keyword,
+            Pageable pageable) {
+        return postService.list(keyword, pageable);
     }
 
     @Operation(summary = "게시글 수정", tags = {"Posts"})

@@ -1,4 +1,4 @@
-package com.example.crudboard.post.dto;
+package com.example.crudboard.global.dto;
 
 import java.util.List;
 import org.springframework.data.domain.Page;

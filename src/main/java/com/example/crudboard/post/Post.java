@@ -23,8 +23,7 @@ public class Post {
     @Column(nullable = false, length = 100)
     private String title;
 
-    @Lob // JPA에서 사용되는 어노테이션, 대형 객체 데이터를 저장하기 위한 가변 길이 데이터 유형
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2000)
     private String content;
 
     @Column(nullable = false)
