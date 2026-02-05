@@ -6,6 +6,22 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    /*
+    Spring Date JPA가 메서드 이름(findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase)을 읽고 의미를 해석한다.
+    단어별로 보변
+    findBy: 조회 쿼리를 만든다.
+    Title: Post 엔티티의 title 필드
+    Containing: SQL로 치면 LIKE %keyword%
+    IgnoreCase: 대소문자 무시 비교
+    Or: OR 조건
+    content: Post 엔티티의 content 필드
+    ContainingIgnoreCase: 동일하게 %keyword%, 대소문자 무시
+
+    그래서 결과적으로 SQL/JPQL은 아래와 같은 느낌으로 만들어 진다.
+    	where upper(title) like upper('%keyword%') or upper(content) like upper('%keyword%')
+	•	order by created_at desc
+	•	limit/offset 적용
+     */
     Page<Post> findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
             String titleKeyWord,
             String contentKeyWord,

@@ -120,10 +120,17 @@ public class PostService {
 //        return PageResponse.from(page);
 //    }
 
+    /*
+    StringUtils.hasText(keyword)는 keyword가 null, "", " ", 이면 false이고 문자열이 들어오면 true
+    var의 실제 타입은 Page<PostResponse>
+    postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(keyword, keyword, pageable) 이 부분은 true일때 인데
+    뜻은 title에 keyword 포함?, content에 keyword 포함?, 대소문자 무시! 기능 이야
+     */
     @Transactional(readOnly = true)
     public PageResponse<PostResponse> list(String keyword, Pageable pageable) {
-        var page = StringUtils.hasText(keyword)
-                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(keyword, keyword, pageable)
+        String trimKeyword = (keyword == null) ? null : keyword.trim();
+        var page = StringUtils.hasText(trimKeyword)
+                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(trimKeyword, trimKeyword, pageable)
                 .map(PostResponse::from)
                 : postRepository.findAll(pageable)
                         .map(PostResponse::from);
