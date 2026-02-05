@@ -2,8 +2,11 @@ package com.example.crudboard.global.exception;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -15,6 +18,35 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of("POST_NOT_FOUND", e.getMessage()));
     }
+
+    /*
+    MethodArgumentNotValidException은 @RequestBody, @Valid가 실패하면 터지는 예외다.
+    fieldErrors를 {필드명: 메시지} 형태로 만들어 details에 넣었다
+
+    왜 LinkedHashMap인가?
+    에러가 여러 개일 때 등록된 순서를 유지해서, 응답이 매번 같은 순서로 나와 테스트/디버깅이 편하다.
+    400 코드: 클라이언트 입력갑이 잘못됨
+     */
+
+    /*
+    예외 처리 흐름
+    1. 요청 들어옴 -> 컨트롤러 호출 직전에 검증 실패 -> MethodArgumentNotValidException 발생
+    2. DispatcherServlet이 예외를 잡고 "예외 처리자"를 찾음(@ExceptionHandler 애노테이션이 붙은 매서드를 전부 탐색한다.)
+    3. handleValidation(MethodArgumentNotValidException e) 실행 -> ResponseEntity<ErrorResponse> 반환
+    4. 이 클래스에 붙은 애노테이션 @RestControllerAdvice이 기능 발휘
+    5. Spring MVC는 HttpMessageConvert를 통해 Jackson이 ErrorResponse를 JONS으로 직렬화 해줌
+    6. 최종적으로 HTTP response body에 직렬화된 JSON 내용을 작성해서 클라이언트에게 전송해줌
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        e.getBindingResult().getFieldErrors()
+                .forEach(err -> fieldErrors.put(err.getField(), err.getDefaultMessage()));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of("VALIDATION_ERROR", "Validation failed", fieldErrors));
+    }
+
 
     @Schema(name = "ErrorResponse", description = "API 에러 응답 포맷")
     public record ErrorResponse(
@@ -28,6 +60,10 @@ public class ApiExceptionHandler {
     ){
         public static ErrorResponse of(String code, String message) {
             return new ErrorResponse(code, message, null, java.time.LocalDateTime.now());
+        }
+
+        public static ErrorResponse of(String code, String message, Object details) {
+            return new ErrorResponse(code, message, details, LocalDateTime.now());
         }
     }
 }

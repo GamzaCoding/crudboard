@@ -154,6 +154,7 @@ public class PostApiTest {
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
     }
 
+    @DisplayName("")
     @Test
     void listPost_withKeyword_filtersResult() throws Exception {
         String firstSampleBody = """
@@ -182,5 +183,26 @@ public class PostApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.content[0].title", containsStringIgnoringCase("spring")));
+    }
+
+    /*
+    이 테스트가 통과한다는 의미
+    @Valid 실패 시에도 응답이 비지 않고, 항상 JSON이며 code가 고정된 값으로 내려오고 details에 어떤 필드가 왜 실패했는지 들어간다
+    즉, API를 사용하는 입장(프론트/앱)에서 "예외 처리가 예측 가능"해진다.
+     */
+    @Test
+    @DisplayName("title에 공백문자 입력 시 400 예외 + VALIDATION_ERROR 확인")
+    void createPost_validationFail_returns400AndDetails() throws Exception {
+        String body = """
+                {
+                    "title": "",
+                    "content": "ok"
+                }
+                """;
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.details.title", not(emptyOrNullString())))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 }
