@@ -1,12 +1,18 @@
 package com.example.crudboard.post;
 
+import com.example.crudboard.global.exception.ApiExceptionHandler.ErrorResponse;
 import com.example.crudboard.post.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.net.URI;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Posts", description = "게시글 CRUD API")
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
@@ -42,6 +49,7 @@ public class PostController {
     3. 기본적으로 Jackson이 객체에서 JSON으로 직렬화 해줌
     그래서 PostResponse 같은 record를 리턴하면 자동으로 JSON이 됨
      */
+    @Operation(summary = "게시글 생성")
     @PostMapping
     public ResponseEntity<Void> create(@RequestBody @Valid PostCreateRequest request) {
         Long id = postService.create(request);
@@ -87,6 +95,13 @@ public class PostController {
     특정 ID기반 상세 조회 -> @PathVariable
     여러 조건을 기반으로 조회 -> @RequestParam
      */
+    @Operation(summary = "게시글 단건 조회", tags = {"Posts"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/{id}")
     public PostResponse get(@PathVariable Long id) {
         return postService.get(id);
@@ -98,11 +113,19 @@ public class PostController {
     예) GET /api/posts?page=0&size=5&sort=createdAt, desc
     즉, 컨트롤러에서 Pageable을 파라미터로 받는 순간 요청이 원하는 페이지 조건이 이미 객체로 준비돼서 들어온다.
      */
+    @Operation(summary = "게시글 목록 조회(페이징)")
     @GetMapping
     public PageResponse<PostResponse> list(Pageable pageable) {
         return postService.list(pageable);
     }
 
+    @Operation(summary = "게시글 수정", tags = {"Posts"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "수정 성공"),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable Long id,
                                        @RequestBody @Valid PostUpdateRequest request){
@@ -110,6 +133,13 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "게시글 삭제", tags = {"Posts"})
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         postService.delete(id);

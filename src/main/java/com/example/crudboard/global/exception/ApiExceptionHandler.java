@@ -1,5 +1,6 @@
 package com.example.crudboard.global.exception;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,14 +15,19 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of("POST_NOT_FOUND", e.getMessage()));
     }
+
+    @Schema(name = "ErrorResponse", description = "API 에러 응답 포맷")
     public record ErrorResponse(
+            @Schema(example = "POST_NOT_FOUND")
             String code,
+            @Schema(example = "Post not found, id=1")
             String message,
             Object details,
+            @Schema(example = "2026-02-04T14:57:49.437688")
             LocalDateTime timestamp
     ){
         public static ErrorResponse of(String code, String message) {
-            return new ErrorResponse(code, message, null, LocalDateTime.now());
+            return new ErrorResponse(code, message, null, java.time.LocalDateTime.now());
         }
     }
 }
