@@ -1,0 +1,116 @@
+<!-- src/main/resources/templates/posts/new.html -->
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>crudboard | New Post</title>
+    <link rel="stylesheet" href="/css/posts.css">
+</head>
+<body>
+<div class="container">
+    <div class="card" id="card">
+        <header>
+            <div>
+                <h1>글쓰기</h1>
+                <div class="muted">POST /api/posts</div>
+            </div>
+            <div class="actions">
+                <a class="btn" href="/posts">목록</a>
+            </div>
+        </header>
+
+        <div class="error" id="errorBox"></div>
+
+        <form id="form">
+            <label for="title">제목</label>
+            <input id="title" type="text" maxlength="100" placeholder="제목을 입력하세요" />
+
+            <label for="content">내용</label>
+            <textarea id="content" placeholder="내용을 입력하세요"></textarea>
+
+            <div class="row">
+                <div class="muted">저장하면 상세 페이지로 이동합니다.</div>
+                <button class="primary" id="submitBtn" type="submit">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const card = document.getElementById('card');
+    const form = document.getElementById('form');
+    const titleEl = document.getElementById('title');
+    const contentEl = document.getElementById('content');
+    const submitBtn = document.getElementById('submitBtn');
+    const errorBox = document.getElementById('errorBox');
+
+    function setLoading(isLoading) {
+        card.classList.toggle('loading', isLoading);
+        submitBtn.disabled = isLoading;
+    }
+
+    function showError(message) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = message;
+    }
+
+    function clearError() {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
+
+    function safeTrim(v) {
+        return (v ?? '').toString().trim();
+    }
+
+    async function createPost(payload) {
+        const res = await fetch('/api/posts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.status === 201) {
+            const location = res.headers.get('Location');
+            return { location };
+        }
+
+        // 에러 응답(ErrorResponse) 파싱 시도
+        const text = await res.text().catch(() => '');
+        throw new Error(`생성 실패 (${res.status})\n${text}`);
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearError();
+
+        const title = safeTrim(titleEl.value);
+        const content = safeTrim(contentEl.value);
+
+        // 프론트 1차 검증(서버 검증이 최종)
+        if (!title) return showError('title은 필수입니다.');
+        if (!content) return showError('content는 필수입니다.');
+
+        setLoading(true);
+        try {
+            const { location } = await createPost({ title, content });
+            if (!location) {
+                showError('생성은 성공했지만 Location 헤더가 없습니다.');
+                return;
+            }
+            // Location은 "/api/posts/{id}" 형태이므로 화면 URL로 변환
+            const id = location.split('/').pop();
+            window.location.href = `/posts/${id}`;
+        } catch (err) {
+            showError(err?.message ?? String(err));
+        } finally {
+            setLoading(false);
+        }
+    });
+</script>
+</body>
+</html>

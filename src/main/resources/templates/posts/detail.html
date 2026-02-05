@@ -1,0 +1,158 @@
+<!-- src/main/resources/templates/posts/detail.html -->
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>crudboard | Post Detail</title>
+    <link rel="stylesheet" href="/css/posts.css">
+</head>
+<body>
+<div class="container">
+    <div class="card" id="card">
+        <header>
+            <div>
+                <h1 id="title">-</h1>
+                <div class="meta">
+                    <span class="pill" id="idPill">ID -</span>
+                    <span class="pill" id="createdAt">created -</span>
+                    <span class="pill" id="updatedAt">updated -</span>
+                </div>
+                <div class="muted" style="margin-top:8px;">내용</div>
+            </div>
+            <div class="actions">
+                <a class="btn" href="/posts">목록</a>
+                <a class="btn primary" id="editLink" href="#">수정</a>
+                <button class="danger" id="deleteBtn">삭제</button>
+            </div>
+        </header>
+
+        <div class="error" id="errorBox"></div>
+
+        <pre id="content">-</pre>
+    </div>
+</div>
+
+<script>
+    const card = document.getElementById('card');
+    const titleEl = document.getElementById('title');
+    const contentEl = document.getElementById('content');
+    const idPill = document.getElementById('idPill');
+    const createdAtEl = document.getElementById('createdAt');
+    const updatedAtEl = document.getElementById('updatedAt');
+    const editLink = document.getElementById('editLink');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const errorBox = document.getElementById('errorBox');
+
+    function setLoading(isLoading) {
+        card.classList.toggle('loading', isLoading);
+        deleteBtn.disabled = isLoading;
+    }
+
+    function showError(message) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = message;
+    }
+
+    function clearError() {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
+
+    function fmtDate(iso) {
+        if (!iso) return '-';
+        return String(iso).replace('T', ' ').slice(0, 19);
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function getIdFromPath() {
+        // /posts/{id} 형태
+        const parts = location.pathname.split('/').filter(Boolean);
+        const last = parts[parts.length - 1];
+        const id = Number(last);
+        if (!Number.isFinite(id)) return null;
+        return id;
+    }
+
+    const postId = getIdFromPath();
+    if (postId == null) {
+        showError('잘못된 접근입니다. (id를 찾을 수 없음)');
+        deleteBtn.disabled = true;
+    } else {
+        editLink.href = `/posts/${postId}/edit`;
+    }
+
+    async function fetchPost(id) {
+        const res = await fetch(`/api/posts/${id}`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`조회 실패 (${res.status})\n${text}`);
+        }
+        return await res.json();
+    }
+
+    async function deletePost(id) {
+        const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+        if (res.status === 204) return;
+        const text = await res.text().catch(() => '');
+        throw new Error(`삭제 실패 (${res.status})\n${text}`);
+    }
+
+    function render(post) {
+        titleEl.textContent = post.title ?? '-';
+        contentEl.textContent = post.content ?? '';
+        idPill.textContent = `ID ${post.id ?? '-'}`;
+        createdAtEl.textContent = `created ${fmtDate(post.createdAt)}`;
+        updatedAtEl.textContent = `updated ${fmtDate(post.updatedAt)}`;
+    }
+
+    async function load() {
+        if (postId == null) return;
+        clearError();
+        setLoading(true);
+        try {
+            const post = await fetchPost(postId);
+            render(post);
+        } catch (e) {
+            showError(e?.message ?? String(e));
+            titleEl.textContent = '-';
+            contentEl.textContent = '';
+            deleteBtn.disabled = true;
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    deleteBtn.addEventListener('click', async () => {
+        if (postId == null) return;
+
+        const ok = confirm('정말 삭제할까요?');
+        if (!ok) return;
+
+        clearError();
+        setLoading(true);
+        try {
+            await deletePost(postId);
+            // 삭제 후 목록으로
+            location.href = '/posts';
+        } catch (e) {
+            showError(e?.message ?? String(e));
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    load();
+</script>
+</body>
+</html>
