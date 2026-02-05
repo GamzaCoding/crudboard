@@ -176,3 +176,37 @@ ddl-auto: update는 "가능한 범위에서 스키마를 맞춰보겠다" 정도
 ##### 실무적인 해결
 * 실무에서는 "테이블 드랍/파일 삭제"를 못 하니까
 * DB 마이그레이션 도구(Flyway/Liquibase)로 스키마 변경 SQL 스크립트로 관리한다.
+
+
+### keyword 기능 구현 중 IgnoreCase 충돌 이슈
+#### 기존 상황
+```java
+public class Post {
+    ...
+    @Lob
+    @Column(nullable = false)
+    private String content;
+    ...
+}
+```
+#### 문제 분석
+* @Lob 애노테이션으로 Post 엔티티 title 칼럼이 CLOB(대용량 텍스트)로 매핑되어 있는 상황이였음
+* keyword검색 기능 구현 중 Hibernate가 IgnoreCase(대소문자 무시)를 위해 만든 UPPER 같은 JPQL이 CLOB에 대해 UPPER를 적용하지 못하는 오류 발생
+
+#### 왜 IgnoreCase에서 UPPER가 나오지?
+* Spring Data JPA는 IgnoreCase가 붙으면 내부적으로 대소문자 무시를 위해 대략 아래와 같은 형태로 바꿔줌
+* UPPER(field) LIKE UPPER(:param)
+* 그런데 field가 CLOB이면 DB/Hibernate가 그 조합을 싫어한다.
+
+#### 해결방법
+* content 필드를 CLOB가 아니라 VARCHAR/TEXT로 매핑되게 바꾸기
+* content 필드에 @Lob 애노테이션을 제거, @Colum 애노테이션에 length 명시해주기
+* 이렇게 하면 content가 CLOB가 아니라 VARCHAR 계열로 잡혀서 UPPER가 가능해짐
+```java
+public class Post {
+    ...
+    @Column(nullable = false, length = 2000)
+    private String content;
+    ...
+}
+```
