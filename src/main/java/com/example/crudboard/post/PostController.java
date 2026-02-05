@@ -3,8 +3,10 @@ package com.example.crudboard.post;
 import com.example.crudboard.global.exception.ApiExceptionHandler.ErrorResponse;
 import com.example.crudboard.global.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
+import com.example.crudboard.post.service.PostQueryService;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
+import com.example.crudboard.post.service.PostCommandService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -32,19 +34,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/posts")
 public class PostController {
 
-    private final PostService postService;
+    private final PostCommandService postCommandService;
+    private final PostQueryService postQueryService;
 
-    public PostController(PostService postService) {
-        this.postService = postService;
+    public PostController(PostCommandService postCommandService, PostQueryService postQueryService) {
+        this.postCommandService = postCommandService;
+        this.postQueryService = postQueryService;
     }
     /*
-    ResponseEntity<T>는 스프링이 제공하는 HTTP응답을 내가 직접 조립하는 박스이다.
-    여기에 담을 수 있는 것
-    1. 상태코드(201, 404 등)
-    2. 헤더(Location, Content-Type 등)
-    3. 바디(JSON 데이터 등)
-    위 create 메서드 시그니처가 ResponseEntity<Void>인 이유는 응답 바디를 비울 거라서 void인 것이다.
-     */
+        ResponseEntity<T>는 스프링이 제공하는 HTTP응답을 내가 직접 조립하는 박스이다.
+        여기에 담을 수 있는 것
+        1. 상태코드(201, 404 등)
+        2. 헤더(Location, Content-Type 등)
+        3. 바디(JSON 데이터 등)
+        위 create 메서드 시그니처가 ResponseEntity<Void>인 이유는 응답 바디를 비울 거라서 void인 것이다.
+         */
     /*
     @RestController에서 객체를 리턴하면 스프링이
     1. 이건 응답 바디로 내보내야 겠다 라고 판단.
@@ -55,7 +59,7 @@ public class PostController {
     @Operation(summary = "게시글 생성")
     @PostMapping
     public ResponseEntity<Void> create(@RequestBody @Valid PostCreateRequest request) {
-        Long id = postService.create(request);
+        Long id = postCommandService.create(request);
         return ResponseEntity.created(URI.create("/api/posts/" + id)).build();
     }
 
@@ -107,7 +111,7 @@ public class PostController {
     })
     @GetMapping("/{id}")
     public PostResponse get(@PathVariable Long id) {
-        return postService.get(id);
+        return postQueryService.get(id);
     }
 
     /*
@@ -119,7 +123,7 @@ public class PostController {
 //    @Operation(summary = "게시글 목록 조회(페이징)")
 //    @GetMapping
 //    public PageResponse<PostResponse> list(Pageable pageable) {
-//        return postService.list(pageable);
+//        return LagacypostService.list(pageable);
 //    }
 
     /*
@@ -131,7 +135,7 @@ public class PostController {
     public PageResponse<PostResponse> list(
             @RequestParam(required = false) String keyword,
             @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return postService.list(keyword, pageable);
+        return postQueryService.list(keyword, pageable);
     }
 
     @Operation(summary = "게시글 수정", tags = {"Posts"})
@@ -144,7 +148,7 @@ public class PostController {
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable Long id,
                                        @RequestBody @Valid PostUpdateRequest request){
-        postService.update(id, request);
+        postCommandService.update(id, request);
         return ResponseEntity.noContent().build();
     }
 
@@ -157,7 +161,7 @@ public class PostController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        postService.delete(id);
+        postCommandService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

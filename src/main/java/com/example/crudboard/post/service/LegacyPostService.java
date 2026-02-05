@@ -1,12 +1,12 @@
-package com.example.crudboard.post;
+package com.example.crudboard.post.service;
 
-import ch.qos.logback.core.util.StringUtil;
 import com.example.crudboard.global.exception.PostNotFoundException;
 import com.example.crudboard.global.dto.PageResponse;
+import com.example.crudboard.post.Post;
+import com.example.crudboard.post.PostRepository;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,13 +22,13 @@ import org.springframework.util.StringUtils;
 this.someMethod() 같은 내부 호출은 프록시를 안 거쳐서 트랜잭션이 안 먹는 경우가 있음/
  */
 
-public class PostService {
+public class LegacyPostService {
 
     private static final int MAX_SIZE = 50;
 
     private final PostRepository postRepository;
 
-    public PostService(PostRepository postRepository) {
+    public LegacyPostService(PostRepository postRepository) {
         this.postRepository = postRepository;
     }
 
