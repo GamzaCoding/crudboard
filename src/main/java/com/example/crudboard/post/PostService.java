@@ -7,6 +7,7 @@ import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,8 @@ this.someMethod() 같은 내부 호출은 프록시를 안 거쳐서 트랜잭�
  */
 
 public class PostService {
+
+    private static final int MAX_SIZE = 50;
 
     private final PostRepository postRepository;
 
@@ -126,13 +129,22 @@ public class PostService {
     postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(keyword, keyword, pageable) 이 부분은 true일때 인데
     뜻은 title에 keyword 포함?, content에 keyword 포함?, 대소문자 무시! 기능 이야
      */
+
+    /*
+    클라이언트는 마음대로 요청할 수 있다. GET /api/posts?size=10000 이런식으로. 그러면 DB가 한 번에 엄청 많은 raw를 읽으려고 하고 메모리/응답시간/DB 부하가 폭증할 수 있음
+    그래서 서버는 "허용 최대 size"를 정해주는게 일반적이다.
+    그래서 "들어온 Pageable을 그대로 믿지 않고, 서버 정책에 맞게 안전한 Pageable로 변환한다"
+     */
     @Transactional(readOnly = true)
     public PageResponse<PostResponse> list(String keyword, Pageable pageable) {
+        int size = Math.min(pageable.getPageSize(), MAX_SIZE);
+        Pageable safePageable = PageRequest.of(pageable.getPageNumber(), size, pageable.getSort());
+
         String trimKeyword = (keyword == null) ? null : keyword.trim();
         var page = StringUtils.hasText(trimKeyword)
-                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(trimKeyword, trimKeyword, pageable)
+                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(trimKeyword, trimKeyword, safePageable)
                 .map(PostResponse::from)
-                : postRepository.findAll(pageable)
+                : postRepository.findAll(safePageable)
                         .map(PostResponse::from);
 
         return PageResponse.from(page);

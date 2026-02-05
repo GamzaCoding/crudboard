@@ -154,8 +154,8 @@ public class PostApiTest {
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
     }
 
-    @DisplayName("")
     @Test
+    @DisplayName("키워드 검색 기능이 동작하는지 확인")
     void listPost_withKeyword_filtersResult() throws Exception {
         String firstSampleBody = """
                 {
@@ -204,5 +204,13 @@ public class PostApiTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.details.title", not(emptyOrNullString())))
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("페이지당 1000개의 게시글을 요청해도 50개 까지만 나온다")
+    void listPosts_sizeIsClampedToMax() throws Exception {
+        mockMvc.perform(get("/api/posts").param("size", "1000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(50));
     }
 }
