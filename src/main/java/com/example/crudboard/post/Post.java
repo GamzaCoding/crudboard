@@ -2,16 +2,20 @@ package com.example.crudboard.post;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity // 이 클래스는 JPA가 관리하는 엔티티 라는 표시
 @Table(name = "posts")
-// 왜 post일까?
+@EntityListeners(AuditingEntityListener.class)
 public class Post {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 PK 생성
@@ -26,9 +30,11 @@ public class Post {
     @Column(nullable = false, length = 2000)
     private String content;
 
-    @Column(nullable = false)
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @LastModifiedDate
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
@@ -59,8 +65,8 @@ public class Post {
     public Post(String title, String content) {
         this.title = title;
         this.content = content;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+//        this.createdAt = LocalDateTime.now();
+//        this.updatedAt = LocalDateTime.now();
     }
 
     /*
@@ -72,7 +78,7 @@ public class Post {
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
-        this.updatedAt = LocalDateTime.now();
+//        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {
