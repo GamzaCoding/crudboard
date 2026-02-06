@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-@Service
-@Transactional
+//@Service
+//@Transactional
 // 클래스에 붙이면 이 클래스의 모든 public메서드가 기본적으로 트랜잭션 적용
 // @Transactional은 스프링 AOP 프록시 기반이라, 기본적으로 public 메서드가 호출될 때 적용됨
 /*

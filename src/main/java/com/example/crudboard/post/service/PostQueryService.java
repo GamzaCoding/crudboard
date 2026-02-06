@@ -30,7 +30,7 @@ public class PostQueryService {
     }
 
     public PageResponse<PostResponse> list(String keyword, Pageable pageable) {
-        int size = Math.max(pageable.getPageSize(), MAX_SIZE);
+        int size = Math.min(pageable.getPageSize(), MAX_SIZE);
         Pageable safePageable = PageRequest.of(pageable.getPageNumber(), size, pageable.getSort());
 
         String trimKeyword = (keyword == null) ? null : keyword.trim();

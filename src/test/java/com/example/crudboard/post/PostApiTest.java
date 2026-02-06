@@ -199,7 +199,9 @@ public class PostApiTest {
                     "content": "ok"
                 }
                 """;
-        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(body))
+        mockMvc.perform(post("/api/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.details.title", not(emptyOrNullString())))
@@ -209,7 +211,8 @@ public class PostApiTest {
     @Test
     @DisplayName("페이지당 1000개의 게시글을 요청해도 50개 까지만 나온다")
     void listPosts_sizeIsClampedToMax() throws Exception {
-        mockMvc.perform(get("/api/posts").param("size", "1000"))
+        mockMvc.perform(get("/api/posts")
+                        .param("size", "1000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size").value(50));
     }
