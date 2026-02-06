@@ -2,6 +2,7 @@ package com.example.crudboard.post;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.crudboard.post.repository.PostRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

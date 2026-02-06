@@ -1,10 +1,12 @@
-package com.example.crudboard.post;
+package com.example.crudboard.post.repository;
 
+import com.example.crudboard.post.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface PostRepository extends JpaRepository<Post, Long> {
+public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificationExecutor<Post> {
 
     /*
     Spring Date JPA가 메서드 이름(findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase)을 읽고 의미를 해석한다.

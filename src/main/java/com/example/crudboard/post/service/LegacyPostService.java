@@ -3,13 +3,12 @@ package com.example.crudboard.post.service;
 import com.example.crudboard.global.exception.PostNotFoundException;
 import com.example.crudboard.global.dto.PageResponse;
 import com.example.crudboard.post.Post;
-import com.example.crudboard.post.PostRepository;
+import com.example.crudboard.post.repository.PostRepository;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.dto.PostResponse;
 import com.example.crudboard.post.dto.PostUpdateRequest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 

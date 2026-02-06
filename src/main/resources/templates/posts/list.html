@@ -15,15 +15,42 @@
                 <h1>게시글 목록</h1>
                 <div class="muted" id="summary">-</div>
             </div>
-            <div class="actions">
-                <input id="keyword" type="text" placeholder="검색어 (title/content)" />
+
+            <!-- ✅ 검색 고도화 UI 추가 -->
+            <div class="actions" style="gap:8px; flex-wrap: wrap;">
+                <input id="keyword" type="text" placeholder="검색어" />
+
+                <!-- type -->
+                <select id="type">
+                    <option value="">전체</option>
+                    <option value="TITLE">제목</option>
+                    <option value="CONTENT">내용</option>
+                    <option value="TITLE_CONTENT">제목+내용</option>
+                </select>
+
+                <!-- createdFrom / createdTo -->
+                <input id="createdFrom" type="datetime-local" />
+                <input id="createdTo" type="datetime-local" />
+
+                <!-- sort -->
+                <select id="sort">
+                    <option value="createdAt,desc">작성일 ↓</option>
+                    <option value="createdAt,asc">작성일 ↑</option>
+                    <option value="updatedAt,desc">수정일 ↓</option>
+                    <option value="updatedAt,asc">수정일 ↑</option>
+                    <option value="id,desc">ID ↓</option>
+                    <option value="id,asc">ID ↑</option>
+                </select>
+
                 <select id="size">
                     <option value="5">5개</option>
                     <option value="10">10개</option>
                     <option value="20">20개</option>
                     <option value="50">50개</option>
                 </select>
+
                 <button id="searchBtn">검색</button>
+                <button id="resetBtn" class="btn">초기화</button>
                 <a class="btn primary" href="/posts/new">글쓰기</a>
             </div>
         </header>
@@ -65,21 +92,38 @@
     const errorBox = document.getElementById('errorBox');
 
     const keywordInput = document.getElementById('keyword');
+    const typeSelect = document.getElementById('type');
+    const createdFromInput = document.getElementById('createdFrom');
+    const createdToInput = document.getElementById('createdTo');
+    const sortSelect = document.getElementById('sort');
+
     const sizeSelect = document.getElementById('size');
     const searchBtn = document.getElementById('searchBtn');
+    const resetBtn = document.getElementById('resetBtn');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
 
     // URL query 기반으로 상태 유지 (새로고침/공유에 좋음)
     function readStateFromUrl() {
         const params = new URLSearchParams(location.search);
+
         const page = parseInt(params.get('page') ?? '0', 10);
         const size = parseInt(params.get('size') ?? '5', 10);
+
         const keyword = params.get('keyword') ?? '';
+        const type = params.get('type') ?? ''; // TITLE, CONTENT, TITLE_CONTENT
+        const createdFrom = params.get('createdFrom') ?? ''; // 2026-02-01T00:00:00
+        const createdTo = params.get('createdTo') ?? '';
+        const sort = params.get('sort') ?? 'createdAt,desc';
+
         return {
             page: Number.isFinite(page) && page >= 0 ? page : 0,
             size: [5,10,20,50].includes(size) ? size : 5,
-            keyword
+            keyword,
+            type,
+            createdFrom,
+            createdTo,
+            sort
         };
     }
 
@@ -87,21 +131,25 @@
         const params = new URLSearchParams();
         params.set('page', String(state.page));
         params.set('size', String(state.size));
+
         if (state.keyword && state.keyword.trim().length > 0) params.set('keyword', state.keyword.trim());
+        if (state.type) params.set('type', state.type);
+        if (state.createdFrom) params.set('createdFrom', state.createdFrom);
+        if (state.createdTo) params.set('createdTo', state.createdTo);
+        if (state.sort) params.set('sort', state.sort);
+
         history.replaceState(null, '', `${location.pathname}?${params.toString()}`);
     }
 
     function fmtDate(iso) {
         if (!iso) return '-';
-        // "2026-02-03T20:12:08.234895" 같은 LocalDateTime 문자열도 Date로 파싱이 될 수 있지만,
-        // 브라우저마다 애매할 수 있어 간단히 앞부분만 표시.
-        // 필요하면 서버에서 ISO_OFFSET_DATE_TIME으로 보내는 방식으로 개선 가능.
         return String(iso).replace('T', ' ').slice(0, 19);
     }
 
     function setLoading(isLoading) {
         card.classList.toggle('loading', isLoading);
         searchBtn.disabled = isLoading;
+        resetBtn.disabled = isLoading;
         prevBtn.disabled = isLoading;
         nextBtn.disabled = isLoading;
     }
@@ -116,22 +164,38 @@
         errorBox.textContent = '';
     }
 
+    // datetime-local 입력값(yyyy-MM-ddTHH:mm) -> 서버가 기대하는 yyyy-MM-ddTHH:mm:ss 로 변환
+    function toLocalDateTimeParam(datetimeLocalValue) {
+        if (!datetimeLocalValue) return '';
+        // "2026-02-06T13:45" -> "2026-02-06T13:45:00"
+        return datetimeLocalValue.length === 16 ? `${datetimeLocalValue}:00` : datetimeLocalValue;
+    }
+
+    // 서버가 내려준 "2026-02-06T13:45:00" -> datetime-local input용 "2026-02-06T13:45"
+    function toDatetimeLocalInputValue(localDateTime) {
+        if (!localDateTime) return '';
+        return String(localDateTime).slice(0, 16);
+    }
+
     // --- API ---
     async function fetchPosts(state) {
-        // 서버에서 기본 정렬을 이미 걸어뒀다면 sort 파라미터는 굳이 안 보내도 됨.
-        // 그래도 명시적으로 보내고 싶으면 아래 주석 해제:
-        // params.set('sort', 'createdAt,desc');
-
         const params = new URLSearchParams();
         params.set('page', String(state.page));
         params.set('size', String(state.size));
+
         if (state.keyword && state.keyword.trim().length > 0) params.set('keyword', state.keyword.trim());
+        if (state.type) params.set('type', state.type);
+        if (state.createdFrom) params.set('createdFrom', state.createdFrom);
+        if (state.createdTo) params.set('createdTo', state.createdTo);
+
+        // 정렬 (Spring Data sort 파라미터)
+        if (state.sort) params.set('sort', state.sort);
 
         const res = await fetch(`/api/posts?${params.toString()}`, {
             headers: { 'Accept': 'application/json' }
         });
 
-        if (!res.ok) { // 200-299가 아니면 false
+        if (!res.ok) {
             const text = await res.text().catch(() => '');
             throw new Error(`API 요청 실패 (${res.status})\n${text}`);
         }
@@ -154,16 +218,16 @@
         for (const post of rows) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-        <td class="muted">${post.id ?? '-'}</td>
-        <td>
-          <div style="font-weight:600; margin-bottom:4px;">${escapeHtml(post.title ?? '')}</div>
-          <div class="muted" style="max-width: 520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-            ${escapeHtml(post.content ?? '')}
-          </div>
-        </td>
-        <td class="muted">${fmtDate(post.createdAt)}</td>
-        <td class="muted">${fmtDate(post.updatedAt)}</td>
-      `;
+                <td class="muted">${post.id ?? '-'}</td>
+                <td>
+                  <div style="font-weight:600; margin-bottom:4px;">${escapeHtml(post.title ?? '')}</div>
+                  <div class="muted" style="max-width: 520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    ${escapeHtml(post.content ?? '')}
+                  </div>
+                </td>
+                <td class="muted">${fmtDate(post.createdAt)}</td>
+                <td class="muted">${fmtDate(post.updatedAt)}</td>
+            `;
             tr.addEventListener('click', () => {
                 if (post.id == null) return;
                 location.href = `/posts/${post.id}`;
@@ -175,14 +239,13 @@
     function renderMeta(pageResponse, state) {
         const totalElements = pageResponse.totalElements ?? 0;
         const totalPages = pageResponse.totalPages ?? 0;
-        const number = pageResponse.number ?? state.page; // 현재 페이지(0-based)
+        const number = pageResponse.number ?? state.page;
         const size = pageResponse.size ?? state.size;
         const numberOfElements = pageResponse.numberOfElements ?? (pageResponse.content?.length ?? 0);
 
         summary.textContent = `총 ${totalElements}개 · 현재 ${numberOfElements}개 표시`;
         pageInfo.textContent = `page ${number + 1} / ${Math.max(totalPages, 1)} · size ${size}`;
 
-        // first/last가 있으면 그걸 우선 사용
         const first = pageResponse.first ?? (number <= 0);
         const last = pageResponse.last ?? (totalPages > 0 ? number >= totalPages - 1 : true);
 
@@ -202,7 +265,13 @@
 
     // --- Actions ---
     let state = readStateFromUrl();
+
+    // ✅ URL -> UI 세팅
     keywordInput.value = state.keyword;
+    typeSelect.value = state.type;
+    createdFromInput.value = toDatetimeLocalInputValue(state.createdFrom);
+    createdToInput.value = toDatetimeLocalInputValue(state.createdTo);
+    sortSelect.value = state.sort;
     sizeSelect.value = String(state.size);
 
     async function load() {
@@ -216,7 +285,6 @@
             renderMeta(data, state);
         } catch (e) {
             showError(e?.message ?? String(e));
-            // 실패 시에도 버튼 상태는 최소한 복구
             prevBtn.disabled = true;
             nextBtn.disabled = true;
             summary.textContent = '-';
@@ -227,10 +295,39 @@
         }
     }
 
-    searchBtn.addEventListener('click', () => {
+    function syncStateFromInputs(resetPage = false) {
         state.keyword = keywordInput.value;
+        state.type = typeSelect.value;
+        state.createdFrom = toLocalDateTimeParam(createdFromInput.value);
+        state.createdTo = toLocalDateTimeParam(createdToInput.value);
+        state.sort = sortSelect.value;
         state.size = parseInt(sizeSelect.value, 10);
-        state.page = 0; // 검색하면 첫 페이지로
+
+        if (resetPage) state.page = 0;
+    }
+
+    searchBtn.addEventListener('click', () => {
+        syncStateFromInputs(true);
+        load();
+    });
+
+    resetBtn.addEventListener('click', () => {
+        keywordInput.value = '';
+        typeSelect.value = '';
+        createdFromInput.value = '';
+        createdToInput.value = '';
+        sortSelect.value = 'createdAt,desc';
+        sizeSelect.value = '5';
+
+        state = {
+            page: 0,
+            size: 5,
+            keyword: '',
+            type: '',
+            createdFrom: '',
+            createdTo: '',
+            sort: 'createdAt,desc'
+        };
         load();
     });
 
@@ -238,9 +335,14 @@
         if (e.key === 'Enter') searchBtn.click();
     });
 
+    // 옵션 변경 시 즉시 반영하고 싶으면 아래 이벤트들 활성화
+    typeSelect.addEventListener('change', () => { syncStateFromInputs(true); load(); });
+    sortSelect.addEventListener('change', () => { syncStateFromInputs(true); load(); });
+    createdFromInput.addEventListener('change', () => { syncStateFromInputs(true); load(); });
+    createdToInput.addEventListener('change', () => { syncStateFromInputs(true); load(); });
+
     sizeSelect.addEventListener('change', () => {
-        state.size = parseInt(sizeSelect.value, 10);
-        state.page = 0;
+        syncStateFromInputs(true);
         load();
     });
 
