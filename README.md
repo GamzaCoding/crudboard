@@ -14,9 +14,10 @@ Spring Boot 기반 **CRUD 게시판 REST API** 연습 프로젝트입니다.
 - Spring Web (Spring MVC)
 - Spring Data JPA (Hibernate)
 - H2 Database (local: file / test: in-memory)
+- Flyway (DB 마이그레이션)
+- JPA Auditing (createAt/updateAt 자동 관리)
 - Validation (jakarta validation)
 - JUnit5, MockMvc
-
 ---
 
 ## Getting Started
@@ -32,6 +33,16 @@ Spring Boot 기반 **CRUD 게시판 REST API** 연습 프로젝트입니다.
 - JDBC URL 예시: `jdbc:h2:file:./data/crudboard;MODE=MySQL`
 - username: `sa`
 - password: (empty)
+
+### 3) DB 마이그레이션(Flyway)
+- 애플리케이션 시작 시 db/migration 아래의 SQL 마이그레이션을 자동 적용합니다.
+- 파일명 규칙 예: V1__init.sql, V2__add_column.sql 처럼, 버전 + 설명 형태
+
+```markdown
+주의: 이미 적용된 마이그레이션 파일(V2 등)의 내용을 나중에 수정하면 
+Flyway가 checksum mismatch로 실행을 막을 수 있습니다.
+(그럴 땐 파일 내용을 원복하거나, 새 버전(V3/V4...)으로 변경사항을 추가하는 방식이 안전합니다.
+```
 
 ---
 
@@ -87,9 +98,22 @@ Base URL: `http://localhost:8080`
 }
 ```
 
-### Search Posts (Keyword)
+### Search Posts (고도화된 검색)
+#### 1) 키워드만 검색 (기본: TITLE_CONTENT)
 - `GET /api/posts?keyword=hello&page=0&size=10&sort=createdAt,desc`
-- 동작 예시: title/content에 keyword가 포함된 게시글을 페이징으로 조회
+
+#### 2) 검색 타입 지정 (TITLE / CONTENT / TITLE_CONTENT)
+- `GET /api/posts?keyword=스프링&type=TITLE&page=0&size=10`
+- `GET /api/posts?keyword=스프링&type=CONTENT&page=0&size=10`
+
+#### 3) 작성일 범위(createdAt) 필터
+- `GET /api/posts?createdFrom=2026-02-01T00:00:00&createdTo=2026-02-06T23:59:59&page=0&size=10`
+
+#### 4) 조합 예시
+- `GET /api/posts?keyword=스프링&type=TITLE&createdFrom=2026-02-01T00:00:00&createdTo=2026-02-06T23:59:59&page=0&size=10`
+
+> 내부 구현은 **JPA Specification**(Criteria API 기반)을 이용해  
+> keyword/type/기간 조건을 “있는 것만” 조합하는 방식으로 동적 쿼리를 만듭니다.
 
 ### Update Post
 - `PUT /api/posts/{id}`
@@ -141,24 +165,28 @@ Base URL: `http://localhost:8080`
 
 ---
 
-## Project Structure (Example)
-
+## Project Structure
 - `post`
   - `Post`
   - `PostController`
-  - `PostRepository`
   - `service`
     - `PostCommandService`
     - `PostQueryService`
-    - `LegacyPostService`
+  - `repository`
+    - `PostRepository`
   - `dto`
     - `PostCreateRequest`
     - `PostUpdateRequest`
     - `PostResponse`
-- `global.exception`
-  - `ApiExceptionHandler`
-  - `PostNotFoundException`
-  - (공통 응답/에러 코드 관련 클래스들)
+- `global`
+  - `dto`
+    - `PageResponse`
+  - `exception`
+    - `ApiExceptionHandler`
+    - `PostNotFoundException`
+- `view`
+  - `PostPageController`
+- `JpaAuditingConfig`
 
 ---
 
