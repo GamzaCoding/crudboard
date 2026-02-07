@@ -19,6 +19,12 @@ public class ApiExceptionHandler {
                 .body(ErrorResponse.of("POST_NOT_FOUND", e.getMessage()));
     }
 
+    @ExceptionHandler(CommentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("COMMENT_NOT_FOUND", e.getMessage()));
+    }
+
     /*
     MethodArgumentNotValidException은 @RequestBody, @Valid가 실패하면 터지는 예외다.
     fieldErrors를 {필드명: 메시지} 형태로 만들어 details에 넣었다
@@ -27,7 +33,6 @@ public class ApiExceptionHandler {
     에러가 여러 개일 때 등록된 순서를 유지해서, 응답이 매번 같은 순서로 나와 테스트/디버깅이 편하다.
     400 코드: 클라이언트 입력갑이 잘못됨
      */
-
     /*
     예외 처리 흐름
     1. 요청 들어옴 -> 컨트롤러 호출 직전에 검증 실패 -> MethodArgumentNotValidException 발생
