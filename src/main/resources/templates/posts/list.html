@@ -14,13 +14,18 @@
             <div>
                 <h1>게시글 목록</h1>
                 <div class="muted" id="summary">-</div>
+
+                <!-- ✅ Auth 상태 표시 -->
+                <div class="muted auth-badge" style="margin-top:6px;">
+                    <span class="pill" id="authPill">로그인 확인 중...</span>
+                    <span id="authHint" style="display:none;">(로그인 후 글쓰기가 가능합니다)</span>
+                </div>
             </div>
 
-            <!-- ✅ 검색 고도화 UI 추가 -->
+            <!-- 검색 고도화 UI -->
             <div class="actions" style="gap:8px; flex-wrap: wrap;">
                 <input id="keyword" type="text" placeholder="검색어" />
 
-                <!-- type -->
                 <select id="type">
                     <option value="">전체</option>
                     <option value="TITLE">제목</option>
@@ -28,11 +33,9 @@
                     <option value="TITLE_CONTENT">제목+내용</option>
                 </select>
 
-                <!-- createdFrom / createdTo -->
                 <input id="createdFrom" type="datetime-local" />
                 <input id="createdTo" type="datetime-local" />
 
-                <!-- sort -->
                 <select id="sort">
                     <option value="createdAt,desc">작성일 ↓</option>
                     <option value="createdAt,asc">작성일 ↑</option>
@@ -51,7 +54,9 @@
 
                 <button id="searchBtn">검색</button>
                 <button id="resetBtn" class="btn">초기화</button>
-                <a class="btn primary" href="/posts/new">글쓰기</a>
+
+                <!-- ✅ 글쓰기 버튼(로그인 시에만 활성화) -->
+                <a class="btn primary" id="writeBtn" href="/posts/new">글쓰기</a>
             </div>
         </header>
 
@@ -103,7 +108,63 @@
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
 
-    // URL query 기반으로 상태 유지 (새로고침/공유에 좋음)
+    // ✅ auth ui
+    const authPill = document.getElementById('authPill');
+    const authHint = document.getElementById('authHint');
+    const writeBtn = document.getElementById('writeBtn');
+
+    // --- Auth ---
+    async function fetchMe() {
+        // 세션 기반이면 보통 쿠키가 자동으로 붙음
+        const res = await fetch('/api/auth/me', { headers: { 'Accept': 'application/json' } });
+        if (res.status === 401 || res.status === 403) return null;
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`me 조회 실패 (${res.status})\n${text}`);
+        }
+        return await res.json(); // ex) { id, username ... } 형태라고 가정
+    }
+
+    function setWriteEnabled(enabled) {
+        if (enabled) {
+            writeBtn.classList.remove('disabled');
+            writeBtn.setAttribute('aria-disabled', 'false');
+            authHint.style.display = 'none';
+        } else {
+            writeBtn.classList.add('disabled');
+            writeBtn.setAttribute('aria-disabled', 'true');
+            authHint.style.display = 'inline';
+        }
+    }
+
+    async function checkAuth() {
+        try {
+            const me = await fetchMe();
+            if (me) {
+                authPill.textContent = '로그인됨';
+                setWriteEnabled(true);
+            } else {
+                authPill.textContent = '비로그인';
+                setWriteEnabled(false);
+            }
+        } catch (e) {
+            // auth 체크 자체가 터져도 UX는 보수적으로 "비로그인" 처리
+            authPill.textContent = '로그인 확인 실패';
+            setWriteEnabled(false);
+            // 원인 확인은 콘솔로
+            console.error(e);
+        }
+    }
+
+    // 비로그인일 때 앵커 클릭이 막히지 않는 브라우저도 있으니 안전하게 한번 더 방어
+    writeBtn.addEventListener('click', (e) => {
+        if (writeBtn.classList.contains('disabled')) {
+            e.preventDefault();
+            alert('로그인 후 글쓰기가 가능합니다.');
+        }
+    });
+
+    // --- URL query 기반 상태 유지 ---
     function readStateFromUrl() {
         const params = new URLSearchParams(location.search);
 
@@ -111,8 +172,8 @@
         const size = parseInt(params.get('size') ?? '5', 10);
 
         const keyword = params.get('keyword') ?? '';
-        const type = params.get('type') ?? ''; // TITLE, CONTENT, TITLE_CONTENT
-        const createdFrom = params.get('createdFrom') ?? ''; // 2026-02-01T00:00:00
+        const type = params.get('type') ?? '';
+        const createdFrom = params.get('createdFrom') ?? '';
         const createdTo = params.get('createdTo') ?? '';
         const sort = params.get('sort') ?? 'createdAt,desc';
 
@@ -164,14 +225,11 @@
         errorBox.textContent = '';
     }
 
-    // datetime-local 입력값(yyyy-MM-ddTHH:mm) -> 서버가 기대하는 yyyy-MM-ddTHH:mm:ss 로 변환
     function toLocalDateTimeParam(datetimeLocalValue) {
         if (!datetimeLocalValue) return '';
-        // "2026-02-06T13:45" -> "2026-02-06T13:45:00"
         return datetimeLocalValue.length === 16 ? `${datetimeLocalValue}:00` : datetimeLocalValue;
     }
 
-    // 서버가 내려준 "2026-02-06T13:45:00" -> datetime-local input용 "2026-02-06T13:45"
     function toDatetimeLocalInputValue(localDateTime) {
         if (!localDateTime) return '';
         return String(localDateTime).slice(0, 16);
@@ -187,8 +245,6 @@
         if (state.type) params.set('type', state.type);
         if (state.createdFrom) params.set('createdFrom', state.createdFrom);
         if (state.createdTo) params.set('createdTo', state.createdTo);
-
-        // 정렬 (Spring Data sort 파라미터)
         if (state.sort) params.set('sort', state.sort);
 
         const res = await fetch(`/api/posts?${params.toString()}`, {
@@ -253,7 +309,6 @@
         nextBtn.disabled = last;
     }
 
-    // XSS 방지용 최소 escape
     function escapeHtml(str) {
         return String(str)
             .replaceAll('&', '&amp;')
@@ -266,7 +321,6 @@
     // --- Actions ---
     let state = readStateFromUrl();
 
-    // ✅ URL -> UI 세팅
     keywordInput.value = state.keyword;
     typeSelect.value = state.type;
     createdFromInput.value = toDatetimeLocalInputValue(state.createdFrom);
@@ -302,7 +356,6 @@
         state.createdTo = toLocalDateTimeParam(createdToInput.value);
         state.sort = sortSelect.value;
         state.size = parseInt(sizeSelect.value, 10);
-
         if (resetPage) state.page = 0;
     }
 
@@ -335,7 +388,6 @@
         if (e.key === 'Enter') searchBtn.click();
     });
 
-    // 옵션 변경 시 즉시 반영하고 싶으면 아래 이벤트들 활성화
     typeSelect.addEventListener('change', () => { syncStateFromInputs(true); load(); });
     sortSelect.addEventListener('change', () => { syncStateFromInputs(true); load(); });
     createdFromInput.addEventListener('change', () => { syncStateFromInputs(true); load(); });
@@ -356,8 +408,9 @@
         load();
     });
 
-    // initial load
-    load();
+    // initial
+    checkAuth(); // ✅ 로그인 상태 먼저 체크
+    load();      // 목록 로딩
 </script>
 </body>
 </html>

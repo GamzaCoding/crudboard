@@ -1,0 +1,224 @@
+<!-- src/main/resources/templates/index.html -->
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>crudboard | Home</title>
+    <link rel="stylesheet" href="/css/home.css">
+</head>
+<body>
+<div class="container">
+    <div class="card" id="card">
+        <header>
+            <div>
+                <h1>crudboard</h1>
+                <div class="muted" id="subtext">-</div>
+            </div>
+            <div class="actions">
+                <a class="btn" href="/posts">게시글 목록</a>
+            </div>
+        </header>
+
+        <div class="error" id="errorBox"></div>
+
+        <!-- 로그인 상태 -->
+        <div id="loggedInBox" style="display:none;">
+            <div class="row" style="align-items:center;">
+                <div>
+                    <div style="font-weight:700; font-size:16px;" id="meName">-</div>
+                    <div class="muted">로그인 상태입니다.</div>
+                </div>
+                <div class="actions">
+                    <a class="btn primary" href="/posts">입장</a>
+                    <button class="danger" id="logoutBtn">로그아웃</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 비로그인 상태 -->
+        <div id="guestBox" style="display:none;">
+            <div class="muted" style="margin-bottom:10px;">
+                로그인하면 글쓰기/댓글쓰기 기능을 사용할 수 있어요.
+            </div>
+
+            <div class="grid2">
+                <section class="panel">
+                    <h2 class="h2">로그인</h2>
+                    <label for="loginEmail">email</label>
+                    <input id="loginEmail" type="text" placeholder="예) choi@naver.com" />
+                    <label for="loginPassword">password</label>
+                    <input id="loginPassword" type="password" placeholder="비밀번호" />
+                    <div class="row">
+                        <button class="primary" id="loginBtn">로그인</button>
+                        <button class="btn" id="enterAsGuestBtn" type="button">게스트로 입장</button>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2 class="h2">회원가입</h2>
+                    <label for="signupEmail">email</label>
+                    <input id="signupEmail" type="text" placeholder="영문/숫자 추천" />
+                    <label for="signupPassword">password</label>
+                    <input id="signupPassword" type="password" placeholder="비밀번호" />
+                    <div class="row">
+                        <button id="signupBtn">회원가입</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const card = document.getElementById('card');
+    const errorBox = document.getElementById('errorBox');
+
+    const subtext = document.getElementById('subtext');
+    const loggedInBox = document.getElementById('loggedInBox');
+    const guestBox = document.getElementById('guestBox');
+    const meName = document.getElementById('meName');
+
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const loginBtn = document.getElementById('loginBtn');
+
+    const signupEmail = document.getElementById('signupEmail');
+    const signupPassword = document.getElementById('signupPassword');
+    const signupBtn = document.getElementById('signupBtn');
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    const enterAsGuestBtn = document.getElementById('enterAsGuestBtn');
+
+    function setLoading(isLoading) {
+        card.classList.toggle('loading', isLoading);
+        loginBtn.disabled = isLoading;
+        signupBtn.disabled = isLoading;
+        if (logoutBtn) logoutBtn.disabled = isLoading;
+    }
+
+    function showError(message) {
+        errorBox.style.display = 'block';
+        errorBox.textContent = message;
+    }
+
+    function clearError() {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
+
+    async function api(url, options = {}) {
+        const res = await fetch(url, {
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...(options.headers || {}) },
+            ...options
+        });
+        const text = await res.text().catch(() => '');
+        let body = null;
+        try { body = text ? JSON.parse(text) : null; } catch (_) {}
+
+        if (!res.ok) {
+            // AuthController는 401/400 같은 응답을 낼 수 있음. 메시지 우선 표시
+            const msg = body?.message ?? body?.error ?? text ?? `요청 실패 (${res.status})`;
+            throw new Error(msg);
+        }
+        return body;
+    }
+
+    async function fetchMe() {
+        // 로그인 안 되어 있으면 보통 401이 나올 것
+        return await api('/api/auth/me', { method: 'GET' });
+    }
+
+    async function login(email, password) {
+        await api('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+    }
+
+    async function signup(email, password) {
+        await api('/api/auth/signup', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+    }
+
+    async function logout() {
+        await api('/api/auth/logout', { method: 'POST' });
+    }
+
+    function showLoggedIn(user) {
+        guestBox.style.display = 'none';
+        loggedInBox.style.display = 'block';
+        meName.textContent = `${user.email ?? 'user'} (id=${user.id ?? '-'})`;
+        subtext.textContent = '환영합니다!';
+    }
+
+    function showGuest() {
+        loggedInBox.style.display = 'none';
+        guestBox.style.display = 'block';
+        subtext.textContent = '로그인/회원가입 또는 게스트로 입장하세요.';
+    }
+
+    loginBtn.addEventListener('click', async () => {
+        clearError();
+        setLoading(true);
+        try {
+            await login(loginEmail.value.trim(), loginPassword.value);
+            location.href = '/posts';
+        } catch (e) {
+            showError(e?.message ?? String(e));
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    signupBtn.addEventListener('click', async () => {
+        clearError();
+        setLoading(true);
+        try {
+            await signup(signupEmail.value.trim(), signupPassword.value);
+            // 가입 후 바로 로그인 흐름이 편함(원하면 자동 로그인도 가능)
+            await login(signupEmail.value.trim(), signupPassword.value);
+            location.href = '/posts';
+        } catch (e) {
+            showError(e?.message ?? String(e));
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    logoutBtn?.addEventListener('click', async () => {
+        clearError();
+        setLoading(true);
+        try {
+            await logout();
+            location.reload();
+        } catch (e) {
+            showError(e?.message ?? String(e));
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    enterAsGuestBtn.addEventListener('click', () => {
+        location.href = '/posts';
+    });
+
+    async function init() {
+        clearError();
+        setLoading(true);
+        try {
+            const me = await fetchMe();
+            showLoggedIn(me);
+        } catch (_) {
+            showGuest();
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

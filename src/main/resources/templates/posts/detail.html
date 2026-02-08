@@ -6,41 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title>crudboard | Post Detail</title>
     <link rel="stylesheet" href="/css/posts.css">
-
-    <!-- 댓글 UI를 위한 최소 보조 스타일(기존 posts.css를 해치지 않게 최소만) -->
-    <style>
-        .section { margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(0,0,0,.08); }
-        .row { display:flex; gap:10px; align-items:center; }
-        .grow { flex: 1; }
-        .comment-form textarea {
-            width: 100%;
-            min-height: 90px;
-            resize: vertical;
-            padding: 10px 12px;
-            border: 1px solid rgba(0,0,0,.15);
-            border-radius: 10px;
-            font: inherit;
-            line-height: 1.35;
-            background: #fff;
-        }
-        .comment-list { margin-top: 12px; display:flex; flex-direction: column; gap: 10px; }
-        .comment-item {
-            border: 1px solid rgba(0,0,0,.10);
-            border-radius: 14px;
-            padding: 12px 12px;
-            background: rgba(255,255,255,.8);
-        }
-        .comment-top { display:flex; justify-content: space-between; align-items:center; gap: 10px; }
-        .comment-meta { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; }
-        .comment-content { margin-top: 8px; white-space: pre-wrap; word-break: break-word; }
-        .comment-actions { display:flex; gap: 8px; }
-        .btn.small, button.small { padding: 8px 10px; border-radius: 10px; font-size: 13px; }
-        .muted.small { font-size: 13px; }
-        .pager.inline { display:flex; gap: 8px; justify-content:flex-end; margin-top: 12px; }
-        .divider { height: 1px; background: rgba(0,0,0,.08); margin: 10px 0; }
-    </style>
 </head>
-
 <body>
 <div class="container">
     <div class="card" id="card">
@@ -51,11 +17,22 @@
                     <span class="pill" id="idPill">ID -</span>
                     <span class="pill" id="createdAt">created -</span>
                     <span class="pill" id="updatedAt">updated -</span>
+                    <!-- ✅ 로그인 상태 표시 -->
+                    <span class="pill" id="authBadge">guest</span>
                 </div>
                 <div class="muted" style="margin-top:8px;">내용</div>
             </div>
+
             <div class="actions">
+                <!-- ✅ 홈 화면 진입 -->
+                <a class="btn" href="/">홈</a>
+
+                <!-- 기존 네비 -->
                 <a class="btn" href="/posts">목록</a>
+
+                <!-- ✅ 비로그인일 때 홈으로 보내서 로그인/회원가입 유도 -->
+                <a class="btn" id="loginBtn" href="/" style="display:none;">로그인</a>
+
                 <a class="btn primary" id="editLink" href="#">수정</a>
                 <button class="danger" id="deleteBtn">삭제</button>
             </div>
@@ -65,16 +42,18 @@
 
         <pre id="content">-</pre>
 
-        <!-- 댓글 섹션 -->
-        <div class="section">
-            <div class="row" style="justify-content: space-between;">
-                <div>
-                    <div style="font-weight: 700; font-size: 18px;">댓글</div>
-                    <div class="muted small" id="commentSummary">-</div>
+        <!-- ✅ 댓글 UI (기존 방식 유지) -->
+        <div style="margin-top:16px;">
+            <div class="row" style="align-items:flex-end;">
+                <div style="flex:1;">
+                    <label for="commentInput">댓글 작성</label>
+                    <textarea id="commentInput" placeholder="댓글을 입력하세요 (Ctrl+Enter로 등록)"></textarea>
                 </div>
-                <div class="row">
-                    <label class="muted small" for="commentSize">표시</label>
-                    <select id="commentSize" class="small">
+                <div style="display:flex; flex-direction:column; gap:8px; min-width:180px;">
+                    <button class="primary" id="commentCreateBtn">댓글 등록</button>
+
+                    <div class="muted">댓글 페이지 크기</div>
+                    <select id="commentSize">
                         <option value="5">5개</option>
                         <option value="10" selected>10개</option>
                         <option value="20">20개</option>
@@ -82,67 +61,53 @@
                 </div>
             </div>
 
-            <div class="divider"></div>
-
-            <!-- 댓글 작성 -->
-            <div class="comment-form">
-                <div class="muted small" style="margin-bottom:6px;">댓글 작성</div>
-                <textarea id="commentInput" placeholder="댓글을 입력하세요 (최대 1000자)"></textarea>
-                <div class="row" style="justify-content: flex-end; margin-top:10px;">
-                    <button class="primary small" id="commentCreateBtn">등록</button>
+            <div class="row" style="margin-top:12px;">
+                <div class="muted">
+                    <span class="pill" id="commentSummary">-</span>
+                    <span class="pill" id="commentPageInfo">page - / -</span>
+                </div>
+                <div class="pager">
+                    <button id="commentPrevBtn">이전</button>
+                    <button id="commentNextBtn">다음</button>
                 </div>
             </div>
 
-            <!-- 댓글 목록 -->
-            <div class="comment-list" id="commentList">
-                <!-- injected -->
-            </div>
-
-            <div class="row" style="justify-content: space-between; margin-top: 12px;">
-                <span class="pill" id="commentPageInfo">page - / -</span>
-                <div class="pager inline">
-                    <button class="small" id="commentPrevBtn">이전</button>
-                    <button class="small" id="commentNextBtn">다음</button>
-                </div>
-            </div>
+            <div id="commentList" style="margin-top:12px;"></div>
         </div>
     </div>
 </div>
 
 <script>
     // =========================
-    // API 경로 (프로젝트에 맞게 조정 가능)
+    // DOM
     // =========================
-    const API = {
-        post: (postId) => `/api/posts/${postId}`,
-        deletePost: (postId) => `/api/posts/${postId}`,
-        // 댓글 API (권장)
-        comments: (postId) => `/api/posts/${postId}/comments`,
-        deleteComment: (postId, commentId) => `/api/posts/${postId}/comments/${commentId}`,
-    };
-
-    // --- DOM ---
     const card = document.getElementById('card');
+
     const titleEl = document.getElementById('title');
     const contentEl = document.getElementById('content');
     const idPill = document.getElementById('idPill');
     const createdAtEl = document.getElementById('createdAt');
     const updatedAtEl = document.getElementById('updatedAt');
+
+    const authBadge = document.getElementById('authBadge');
+    const loginBtn = document.getElementById('loginBtn');
+
     const editLink = document.getElementById('editLink');
     const deleteBtn = document.getElementById('deleteBtn');
     const errorBox = document.getElementById('errorBox');
 
-    // comments dom
-    const commentSummary = document.getElementById('commentSummary');
-    const commentSizeSelect = document.getElementById('commentSize');
     const commentInput = document.getElementById('commentInput');
     const commentCreateBtn = document.getElementById('commentCreateBtn');
-    const commentList = document.getElementById('commentList');
-    const commentPageInfo = document.getElementById('commentPageInfo');
+    const commentSizeSelect = document.getElementById('commentSize');
     const commentPrevBtn = document.getElementById('commentPrevBtn');
     const commentNextBtn = document.getElementById('commentNextBtn');
+    const commentList = document.getElementById('commentList');
+    const commentSummary = document.getElementById('commentSummary');
+    const commentPageInfo = document.getElementById('commentPageInfo');
 
-    // --- Utils ---
+    // =========================
+    // Utils
+    // =========================
     function setLoading(isLoading) {
         card.classList.toggle('loading', isLoading);
         deleteBtn.disabled = isLoading;
@@ -176,19 +141,36 @@
     }
 
     function getIdFromPath() {
-        // /posts/{id} 형태
+        // /posts/{id}
         const parts = location.pathname.split('/').filter(Boolean);
         const last = parts[parts.length - 1];
         const id = Number(last);
-        if (!Number.isFinite(id)) return null;
-        return id;
+        return Number.isFinite(id) ? id : null;
     }
 
-    // --- State ---
+    // =========================
+    // API paths (네 프로젝트 가정 그대로)
+    // =========================
+    const API = {
+        post: (id) => `/api/posts/${id}`,
+        deletePost: (id) => `/api/posts/${id}`,
+        comments: (postId) => `/api/posts/${postId}/comments`,
+        createComment: (postId) => `/api/posts/${postId}/comments`,
+        me: () => `/api/auth/me`,
+    };
+
+    // =========================
+    // State
+    // =========================
     const postId = getIdFromPath();
     const commentState = {
         page: 0,
         size: parseInt(commentSizeSelect.value, 10),
+    };
+
+    const authState = {
+        isLoggedIn: false,
+        user: null,
     };
 
     if (postId == null) {
@@ -199,6 +181,46 @@
         commentNextBtn.disabled = true;
     } else {
         editLink.href = `/posts/${postId}/edit`;
+    }
+
+    // =========================
+    // Auth
+    // =========================
+    async function initAuth() {
+        try {
+            const res = await fetch(API.me(), { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) {
+                authState.isLoggedIn = false;
+                authState.user = null;
+                return;
+            }
+            const me = await res.json().catch(() => ({}));
+            authState.isLoggedIn = true;
+            authState.user = me;
+        } catch {
+            authState.isLoggedIn = false;
+            authState.user = null;
+        }
+    }
+
+    function applyAuthUi() {
+        if (authState.isLoggedIn) {
+            authBadge.textContent = 'login';
+            loginBtn.style.display = 'none';
+
+            // 로그인 시 활성화 (게시글 수정/삭제 + 댓글작성)
+            editLink.classList.remove('disabled');
+            deleteBtn.disabled = false;
+            commentCreateBtn.disabled = false;
+        } else {
+            authBadge.textContent = 'guest';
+            loginBtn.style.display = 'inline-flex';
+
+            // 비로그인 시 비활성화
+            editLink.href = '#';
+            deleteBtn.disabled = true;
+            commentCreateBtn.disabled = true;
+        }
     }
 
     // =========================
@@ -228,6 +250,11 @@
         updatedAtEl.textContent = `updated ${fmtDate(post.updatedAt)}`;
     }
 
+    async function loadPost() {
+        const post = await fetchPost(postId);
+        renderPost(post);
+    }
+
     // =========================
     // Comment API
     // =========================
@@ -235,12 +262,9 @@
         const params = new URLSearchParams();
         params.set('page', String(state.page));
         params.set('size', String(state.size));
-        // 서버에서 기본 정렬을 걸어뒀다면 생략 가능. 필요하면 아래 주석 해제:
-        // params.set('sort', 'createdAt,desc');
+        const url = `${API.comments(postId)}?${params.toString()}`;
 
-        const res = await fetch(`${API.comments(postId)}?${params.toString()}`, {
-            headers: { 'Accept': 'application/json' }
-        });
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!res.ok) {
             const text = await res.text().catch(() => '');
             throw new Error(`댓글 조회 실패 (${res.status})\n${text}`);
@@ -249,144 +273,79 @@
     }
 
     async function createComment(postId, content) {
-        const res = await fetch(API.comments(postId), {
+        const res = await fetch(API.createComment(postId), {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content }),
         });
 
-        // 보통 201 Created (또는 200 OK) 가능
-        if (res.status === 201 || res.status === 200) return await res.json().catch(() => ({}));
+        if (res.status === 201 || res.status === 204) return;
 
         const text = await res.text().catch(() => '');
         throw new Error(`댓글 등록 실패 (${res.status})\n${text}`);
     }
 
-    async function deleteComment(postId, commentId) {
-        const res = await fetch(API.deleteComment(postId, commentId), { method: 'DELETE' });
+    function renderComments(page) {
+        const items = page?.content ?? [];
+        const totalElements = page?.totalElements ?? 0;
+        const totalPages = page?.totalPages ?? 0;
+        const number = page?.number ?? 0;
+        const size = page?.size ?? commentState.size;
 
-        // 보통 204 No Content
-        if (res.status === 204) return;
+        commentSummary.textContent = `댓글 ${totalElements}개`;
+        commentPageInfo.textContent = `page ${number + 1} / ${Math.max(totalPages, 1)}`;
 
-        const text = await res.text().catch(() => '');
-        throw new Error(`댓글 삭제 실패 (${res.status})\n${text}`);
-    }
+        commentPrevBtn.disabled = number <= 0;
+        commentNextBtn.disabled = number + 1 >= totalPages;
 
-    function renderComments(pageResponse) {
-        commentList.innerHTML = '';
-
-        const rows = pageResponse.content ?? [];
-        if (rows.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'muted';
-            empty.style.padding = '12px 6px';
-            empty.textContent = '댓글이 없습니다.';
-            commentList.appendChild(empty);
+        if (items.length === 0) {
+            commentList.innerHTML = `<div class="muted">아직 댓글이 없어요.</div>`;
             return;
         }
 
-        for (const c of rows) {
-            const item = document.createElement('div');
-            item.className = 'comment-item';
-
-            const id = c.id ?? null;
-            const createdAt = c.createdAt ?? null;
-            const updatedAt = c.updatedAt ?? null;
-            const content = c.content ?? '';
-
-            item.innerHTML = `
-        <div class="comment-top">
-          <div class="comment-meta">
-            <span class="pill">#${id ?? '-'}</span>
-            <span class="muted small">created ${escapeHtml(fmtDate(createdAt))}</span>
-            <span class="muted small">updated ${escapeHtml(fmtDate(updatedAt))}</span>
-          </div>
-          <div class="comment-actions">
-            <button class="danger small" data-action="delete" data-id="${id ?? ''}">삭제</button>
-          </div>
-        </div>
-        <div class="comment-content">${escapeHtml(content)}</div>
-      `;
-
-            // 삭제 핸들러
-            const delBtn = item.querySelector('button[data-action="delete"]');
-            delBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (id == null) return;
-
-                const ok = confirm('댓글을 삭제할까요?');
-                if (!ok) return;
-
-                clearError();
-                setLoading(true);
-                try {
-                    await deleteComment(postId, id);
-                    // 현재 페이지에서 삭제 후 비어버리면 한 페이지 당겨주는 UX
-                    // (예: 마지막 댓글을 삭제해서 현재 페이지가 텅 빈 경우)
-                    const after = await fetchComments(postId, commentState);
-                    if ((after.content?.length ?? 0) === 0 && commentState.page > 0) {
-                        commentState.page -= 1;
-                    }
-                    await loadComments();
-                } catch (err) {
-                    showError(err?.message ?? String(err));
-                } finally {
-                    setLoading(false);
-                }
-            });
-
-            commentList.appendChild(item);
-        }
-    }
-
-    function renderCommentMeta(pageResponse) {
-        const totalElements = pageResponse.totalElements ?? 0;
-        const totalPages = pageResponse.totalPages ?? 0;
-        const number = pageResponse.number ?? commentState.page;
-        const size = pageResponse.size ?? commentState.size;
-        const numberOfElements = pageResponse.numberOfElements ?? (pageResponse.content?.length ?? 0);
-
-        commentSummary.textContent = `총 ${totalElements}개 · 현재 ${numberOfElements}개 표시`;
-        commentPageInfo.textContent = `page ${number + 1} / ${Math.max(totalPages, 1)} · size ${size}`;
-
-        const first = pageResponse.first ?? (number <= 0);
-        const last = pageResponse.last ?? (totalPages > 0 ? number >= totalPages - 1 : true);
-
-        commentPrevBtn.disabled = first;
-        commentNextBtn.disabled = last;
-    }
-
-    // =========================
-    // Loaders
-    // =========================
-    async function loadPost() {
-        const post = await fetchPost(postId);
-        renderPost(post);
+        commentList.innerHTML = items.map(c => {
+            const created = fmtDate(c.createdAt);
+            const updated = fmtDate(c.updatedAt);
+            const content = escapeHtml(c.content ?? '');
+            return `
+                <div class="card" style="margin:10px 0; box-shadow:none; border:1px solid #eef1f4;">
+                    <div class="muted" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                        <span class="pill">#${c.id ?? '-'}</span>
+                        <span class="pill">created ${created}</span>
+                        <span class="pill">updated ${updated}</span>
+                    </div>
+                    <div style="white-space:pre-wrap; word-break:break-word;">${content}</div>
+                </div>
+            `;
+        }).join('');
     }
 
     async function loadComments() {
-        const data = await fetchComments(postId, commentState);
-        renderComments(data);
-        renderCommentMeta(data);
+        const page = await fetchComments(postId, commentState);
+        renderComments(page);
     }
 
+    // =========================
+    // Load all
+    // =========================
     async function loadAll() {
         if (postId == null) return;
 
         clearError();
         setLoading(true);
         try {
+            // ✅ auth 먼저 체크해서 UI enable/disable 확정
+            await initAuth();
+            applyAuthUi();
+
             await loadPost();
             await loadComments();
         } catch (e) {
             showError(e?.message ?? String(e));
-            // 실패 시 최소 상태 복구
             titleEl.textContent = '-';
             contentEl.textContent = '';
             deleteBtn.disabled = true;
+
             commentCreateBtn.disabled = true;
             commentPrevBtn.disabled = true;
             commentNextBtn.disabled = true;
@@ -395,6 +354,7 @@
             commentPageInfo.textContent = 'page - / -';
         } finally {
             setLoading(false);
+            applyAuthUi();
         }
     }
 
@@ -403,6 +363,12 @@
     // =========================
     deleteBtn.addEventListener('click', async () => {
         if (postId == null) return;
+
+        if (!authState.isLoggedIn) {
+            alert('로그인 후 삭제할 수 있어요.');
+            location.href = '/';
+            return;
+        }
 
         const ok = confirm('정말 게시글을 삭제할까요?');
         if (!ok) return;
@@ -416,11 +382,18 @@
             showError(e?.message ?? String(e));
         } finally {
             setLoading(false);
+            applyAuthUi();
         }
     });
 
     commentCreateBtn.addEventListener('click', async () => {
         if (postId == null) return;
+
+        if (!authState.isLoggedIn) {
+            alert('로그인 후 댓글을 작성할 수 있어요.');
+            location.href = '/';
+            return;
+        }
 
         const content = (commentInput.value ?? '').trim();
         if (content.length === 0) {
@@ -437,18 +410,17 @@
         try {
             await createComment(postId, content);
             commentInput.value = '';
-            // 등록하면 첫 페이지로 보이게(최신순 정렬 기준일 때 UX 좋음)
             commentState.page = 0;
             await loadComments();
         } catch (e) {
             showError(e?.message ?? String(e));
         } finally {
             setLoading(false);
+            applyAuthUi();
         }
     });
 
     commentInput.addEventListener('keydown', (e) => {
-        // Ctrl+Enter로 등록
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             commentCreateBtn.click();
         }
@@ -465,6 +437,7 @@
             showError(e?.message ?? String(e));
         } finally {
             setLoading(false);
+            applyAuthUi();
         }
     });
 
@@ -478,6 +451,7 @@
             showError(e?.message ?? String(e));
         } finally {
             setLoading(false);
+            applyAuthUi();
         }
     });
 
@@ -491,10 +465,10 @@
             showError(e?.message ?? String(e));
         } finally {
             setLoading(false);
+            applyAuthUi();
         }
     });
 
-    // initial load
     loadAll();
 </script>
 </body>

@@ -23,6 +23,19 @@ button, a.btn {
 button.primary, a.btn.primary { background: #111; color: #fff; border-color: #111; }
 button.danger { border-color: #ffcccc; background:#fff5f5; color:#b00020; }
 button:disabled { opacity: .5; cursor: not-allowed; }
+textarea:disabled {
+    background: #f5f6f8;
+    color: #777;
+}
+textarea:disabled::placeholder,
+input:disabled::placeholder {
+    color: #999;
+}
+textarea:disabled,
+input:disabled,
+select:disabled {
+    cursor: not-allowed;
+}
 
 table { width: 100%; border-collapse: collapse; }
 thead th { text-align: left; font-weight: 600; font-size: 13px; color: #444; padding: 10px 8px; border-bottom: 1px solid #eee; }
@@ -53,3 +66,9 @@ pre {
 
 label { display:block; font-size: 13px; color:#444; margin: 10px 0 6px; }
 .row { display:flex; gap: 10px; align-items:center; justify-content: space-between; margin-top: 14px; }
+a.btn.disabled, button.disabled {
+    opacity: .5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.auth-badge { display: inline-flex; gap: 6px; align-items: center; }
