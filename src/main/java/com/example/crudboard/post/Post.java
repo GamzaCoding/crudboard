@@ -13,8 +13,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity // 이 클래스는 JPA가 관리하는 엔티티 라는 표시
-@Table(name = "posts")
 @EntityListeners(AuditingEntityListener.class)
+@Table(name = "posts")
 public class Post {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 PK 생성
@@ -60,12 +60,9 @@ public class Post {
     때문에 어떤 타입으로 엔티티를 만들더라도
     해당 엔티티를 생성하기 위해 Reflection을 사용하여 엔티티 인스턴스를 만들어 주는 것이다.
      */
-
     public Post(String title, String content) {
         this.title = title;
         this.content = content;
-//        this.createdAt = LocalDateTime.now();
-//        this.updatedAt = LocalDateTime.now();
     }
 
     /*
@@ -77,7 +74,6 @@ public class Post {
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
-//        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -100,3 +96,4 @@ public class Post {
         return updatedAt;
     }
 }
+

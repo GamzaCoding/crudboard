@@ -2,9 +2,11 @@
 
 Spring Boot 기반 **CRUD 게시판 REST API** 연습 프로젝트입니다.  
 게시글(Post)에 대해 **생성/조회/수정/삭제(CRUD)**, **목록 조회(페이징/정렬)**, **키워드 검색**, **예외 처리**, **통합 테스트(MockMvc)** 를 구현했습니다.
+또한 게시글에 종속되는 댓글(Comment) CRUD(및 목록 페이징)를 추가했습니다.
 
 > ✨ 서비스 레이어는 책임을 분리하기 위해  
 > **PostCommandService(쓰기: Create/Update/Delete)**, **PostQueryService(읽기: Get/List/Search)** 로 구성했습니다.
+> (Comment CRUD도 동일한 방식의 레이어를 사용했습니다.)
 
 ---
 
@@ -113,7 +115,7 @@ Base URL: `http://localhost:8080`
 - `GET /api/posts?keyword=스프링&type=TITLE&createdFrom=2026-02-01T00:00:00&createdTo=2026-02-06T23:59:59&page=0&size=10`
 
 > 내부 구현은 **JPA Specification**(Criteria API 기반)을 이용해  
-> keyword/type/기간 조건을 “있는 것만” 조합하는 방식으로 동적 쿼리를 만듭니다.
+> keyword/type/기간 조건을 “있는 것만” 조합하는 방식으로 동적 쿼리를 생성합니다.
 
 ### Update Post
 - `PUT /api/posts/{id}`
@@ -129,6 +131,56 @@ Base URL: `http://localhost:8080`
 ### Delete Post
 - `DELETE /api/posts/{id}`
 - Response: `204 No Content`
+
+---
+## Comment API (Post 하위 리소스)
+
+댓글은 “게시글에 종속”되므로 보통 아래 형태로 설계합니다.
+
+### Create Comment
+* POST /api/posts/{postId}/comments
+```json
+{
+  "content": "첫 댓글"
+}
+```
+* Response: 201 Created (+ Location 또는 body 반환 방식은 프로젝트 정책에 따름)
+
+### List Comments (Paging)
+* GET /api/posts/{postId}/comments?page=0&size=10&sort=createdAt,desc
+* Response: 200 OK (Page 형태)
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "content": "첫 댓글",
+      "createdAt": "2026-02-07T10:00:00.000000",
+      "updatedAt": "2026-02-07T10:00:00.000000"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "size": 10,
+  "number": 0,
+  "first": true,
+  "last": true
+}
+```
+
+### Update Comment
+* PUT /api/posts/{postId}/comments/{commentId}
+```json
+{
+  "content": "수정된 댓글"
+}
+```
+* Response: 204 No Content
+
+### Delete Comment
+* DELETE /api/posts/{postId}/comments/{commentId}
+* Response: 204 No Content
 
 ---
 
@@ -178,6 +230,18 @@ Base URL: `http://localhost:8080`
     - `PostCreateRequest`
     - `PostUpdateRequest`
     - `PostResponse`
+- `comment`
+  - `Comment`
+  - `CommentController`
+  - `service`
+    - `CommentCommandService`
+    - `CommentQuerySerive`
+  - `repository`
+    - `CommentRepositoy`
+  - `dto`
+    - `CommentCreateRequest`
+    - `CommentResponse`
+    - `CommentUpdateRequest`
 - `global`
   - `dto`
     - `PageResponse`
@@ -253,3 +317,23 @@ public class Post {
     ...
 }
 ```
+---
+### Flyway 마이그레이션 파일 수정으로 인한 checksum mismatch 이슈
+
+#### 발생 흐름
+1. V5__create_comments.sql 작성 후 애플리케이션 실행
+2. SQL 문법 오타로 인해 Flyway migration 실패
+3. flyway_schema_history에 실패 기록이 남아 다음 실행에서 validation 살패
+4. "오타만 고치면 되겠지"하고 이미 실패/적용된 V5 파일을 수정
+5. Flyway가 checksum mismatch 또는 failed migration detected로 애플리케이션 부팅을 막음
+
+#### 핵심 원인
+* Flyway는 한 번 적용된 버전 파일의 내용이 바뀌면 안 된다는 전제를 강하게 가집니다.
+* 실패한 버전의 기록이 남아있으면 validate 단계에서 실행을 중단합니다.
+
+#### 해결 방식
+* DB에 반쪽짜리로 생성된 흔적 정리
+  * comments 테이블/인덱스/제약조건이 일부라도 만들어졌다면 제거
+  * DB에 접속하여 Drop table 실행
+* 그 다음, Flyway History 정합성 복구
+  * DB에 접속하여 flyway_schema_history 테이블 내 실패 기록 제거
