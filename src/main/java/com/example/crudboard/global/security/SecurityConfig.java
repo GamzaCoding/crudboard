@@ -63,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/home").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/posts/**").permitAll()
+                        .requestMatchers("/error").permitAll()
 
                         // 인증 api
                         .requestMatchers("/api/auth/**").permitAll()
