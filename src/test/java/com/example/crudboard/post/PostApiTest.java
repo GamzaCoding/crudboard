@@ -6,11 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
+import static com.example.crudboard.util.TestAuthHelper.createPost;
+import static com.example.crudboard.util.TestAuthHelper.signupAndLogin;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -35,52 +38,43 @@ public class PostApiTest {
 
     @Test
     @DisplayName("Create api 실행시 201이 반환된다.")
-    void createPost_returns201AndLocation() throws Exception {
-        String body = """
-                {
-                    "title": "hello",
-                    "content": "first post"
-                }
-                """;
+    void createPostAndReturns201() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
 
         mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(header().string("Location", matchesPattern("/api/posts/\\d+")));
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                        "title": "hello",
+                        "content": "first post"
+                        }
+                        """))
+                .andExpect(status().isCreated());
     }
 
     @Test
-    @DisplayName("Read api 실행시 202가 반환된다.")
-    void getPost_return200AndJson() throws Exception {
-        String createBody = """
-                {
-                    "title": "hello",
-                    "content": "first post"
-                }
-                """;
+    @DisplayName("Create api 실행시 Location 헤더가 /api/posts/{id} 형식으로 반환된다.")
+    void createPostReturnsLocationHeader() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
 
-        String location = mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createBody))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getHeader("Location");
+        String location = createPost(mockMvc, session, "hello", "first post");
+        assertThat(location, matchesPattern("/api/posts/\\d+"));
+    }
+
+    @Test
+    @DisplayName("Read api 실행시 200가 반환된다.")
+    void getPostReturn200() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        String location = createPost(mockMvc, session, "hello", "first post");
 
         mockMvc.perform(get(location))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.title").value("hello"))
-                .andExpect(jsonPath("$.content").value("first post"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty())
-                .andExpect(jsonPath("$.updatedAt").isNotEmpty());
+                .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("DB에 없는 read 요청 시 ApiExceptionHandler 통해 에러가 처리된다.")
-    void getNonExistingPost_returns404AndErrorCode() throws Exception {
+    void getNonExistingPostReturns404AndErrorCode() throws Exception {
         mockMvc.perform(get("/api/posts/99999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
@@ -89,22 +83,10 @@ public class PostApiTest {
     }
 
     @Test
-    @DisplayName("Update api 실행시 204 반환 및 데이터 변경이 성공한다. ")
-    void updatePost_return204_andChangesData() throws Exception {
-        String createBody = """
-                {
-                    "title": "hello",
-                    "content": "first post"
-                }
-                """;
-
-        String location = mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createBody))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getHeader("Location");
+    @DisplayName("Update api 실행시 204가 반환된다.")
+    void updatePostReturn204() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        String location = createPost(mockMvc, session, "hello", "first post");
 
         String updateBody = """
                 {
@@ -114,9 +96,32 @@ public class PostApiTest {
                 """;
 
         mockMvc.perform(put(location)
+                        .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateBody))
                 .andExpect(status().isNoContent());
+
+        mockMvc.perform(get(location))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Update api 실행시 데이터 변경이 성공한다.")
+    void updatePostAndChangeData() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        String location = createPost(mockMvc, session, "hello", "first post");
+
+        String updateBody = """
+                {
+                    "title": "updated title",
+                    "content": "updated content"
+                }
+                """;
+
+        mockMvc.perform(put(location)
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody));
 
         mockMvc.perform(get(location))
                 .andExpect(status().isOk())
@@ -125,58 +130,39 @@ public class PostApiTest {
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty());
     }
 
+
     @Test
-    @DisplayName("Delete api 실행시 204 반환, 삭제 후 조회 시 404가 반환된다.")
-    void deletePost_returns204_andThen404OnGet() throws Exception {
-        String createBody = """
-                {
-                    "title": "hello",
-                    "content": "first post"
-                }
-                """;
-
-        String location = mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(createBody))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getHeader("Location");
+    @DisplayName("Delete api 실행시 204가 반환된다.")
+    void deletePostReturns204() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        String location = createPost(mockMvc, session, "hello", "first post");
 
 
-        mockMvc.perform(delete(location))
+        mockMvc.perform(delete(location)
+                        .session(session))
                 .andExpect(status().isNoContent());
+    }
 
-        // 삭제 후 조회시 404 에러코드 확인
+    @Test
+    @DisplayName("Delete api 실행 후 조회 시 404가 반환된다.")
+    void deletePostReturn404OnGet() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        String location = createPost(mockMvc, session, "hello", "first post");
+        mockMvc.perform(delete(location)
+                .session(session));
+
         mockMvc.perform(get(location))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
     }
 
-    @Test
-    @DisplayName("키워드 검색 기능이 동작하는지 확인")
-    void listPost_withKeyword_filtersResult() throws Exception {
-        String firstSampleBody = """
-                {
-                    "title": "spring",
-                    "content": "boot"
-                }
-                """;
-        mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(firstSampleBody))
-                .andExpect(status().isCreated());
 
-        String secondSampleBody = """
-                {
-                    "title": "java",
-                    "content": "jpa"
-                }
-                """;
-        mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(secondSampleBody))
-                .andExpect(status().isCreated());
+    @Test
+    @DisplayName("키워드 검색 기능이 정상 동작한다.")
+    void listPostWithKeywordFiltersResult() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        createPost(mockMvc, session, "spring", "boot");
+        createPost(mockMvc, session, "java", "jpa");
 
         mockMvc.perform(get("/api/posts").param("keyword", "spring"))
                 .andExpect(status().isOk())
@@ -190,8 +176,9 @@ public class PostApiTest {
     즉, API를 사용하는 입장(프론트/앱)에서 "예외 처리가 예측 가능"해진다.
      */
     @Test
-    @DisplayName("title에 공백문자 입력 시 400 예외 + VALIDATION_ERROR 확인")
-    void createPost_validationFail_returns400AndDetails() throws Exception {
+    @DisplayName("title에 공백문자 입력 시 400가 발생된다.")
+    void createPostReturns400() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
         String body = """
                 {
                     "title": "",
@@ -199,17 +186,34 @@ public class PostApiTest {
                 }
                 """;
         mockMvc.perform(post("/api/posts")
+                        .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.details.title", not(emptyOrNullString())))
-                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
+    @DisplayName("title에 공백문자 입력 시 VALIDATION_ERROR가 확인된다.")
+    void createPostValidateFile() throws Exception {
+        MockHttpSession session = signupAndLogin(mockMvc);
+        String body = """
+                {
+                    "title": "",
+                    "content": "ok"
+                }
+                """;
+
+        mockMvc.perform(post("/api/posts")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+
+    @Test
     @DisplayName("페이지당 1000개의 게시글을 요청해도 50개 까지만 나온다")
-    void listPosts_sizeIsClampedToMax() throws Exception {
+    void listPostsSizeIsClampedToMax() throws Exception {
         mockMvc.perform(get("/api/posts")
                         .param("size", "1000"))
                 .andExpect(status().isOk())

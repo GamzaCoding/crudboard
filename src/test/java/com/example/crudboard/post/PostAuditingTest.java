@@ -18,10 +18,9 @@ public class PostAuditingTest {
 
     @Test
     @DisplayName("Post 엔티티 내 created_at, updated_at이 null이 아니다.")
-    void auditing_fields_are_set() {
+    void auditingFieldsAreSet() {
         Post post = postRepository.save(new Post("t", "c"));
         assertThat(post.getCreatedAt()).isNotNull();
         assertThat(post.getUpdatedAt()).isNotNull();
     }
-
 }
