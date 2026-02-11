@@ -32,7 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class PostApiTest {
 
     @Autowired MockMvc mockMvc; // 테스트에서 HTTP 요청을 보내는 도구, perform()으로 요청을 날리고, andExpect()로 결과를 검증한다.
-    @Autowired ObjectMapper objectMapper; // DTO 객체를 JSON으로 직렬화 할 때 쓰는 도구, 지금 테스트에서는 문자열 JSON을 직접 써서 실제로는 사용하지 않음
 
     @Test
     @DisplayName("Create api 실행시 201이 반환된다.")
