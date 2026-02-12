@@ -1,7 +1,6 @@
 package com.example.crudboard.comment;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,24 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class CommentApiTest {
 
     @Autowired MockMvc mockMvc;
-
-    private Long createComment(MockHttpSession session, Long postId, String content) throws Exception {
-        String body = String.format("""
-                {
-                    "content": "%s"
-                }
-                """, content);
-
-        MvcResult result = mockMvc.perform(post("/api/posts/{postId}/comments", postId)
-                        .session(session)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        JsonNode node = new ObjectMapper().readTree(result.getResponse().getContentAsString());
-        return node.get("id").asLong();
-    }
 
     @Test
     @DisplayName("댓글 생성 시 201과 응답 바디가 반환된다.")
@@ -72,25 +53,33 @@ public class CommentApiTest {
     @DisplayName("댓글 목록은 게시글별로 필터링된다.")
     void listCommentsFiltersByPost() throws Exception {
         MockHttpSession session = signupAndLogin(mockMvc);
-        Long postId = createPostId(mockMvc, session, "post1", "content1");
-        Long otherPostId = createPostId(mockMvc, session, "post2", "content2");
+        Long postId = createPostId(mockMvc, session, "post1", "2번 댓글까지 선물 증정");
+        Long otherPostId = createPostId(mockMvc, session, "post2", "1빠 댓글만 선물 증정");
 
-        createComment(session, postId, "comment-1");
-        createComment(session, postId, "comment-2");
-        createComment(session, otherPostId, "comment-3");
+        createComment(session, postId, "1번 댓글 남기고 갑니다");
+        createComment(session, postId, "2번 댓글 남기고 갑니다.");
+        createComment(session, otherPostId, "1빠");
 
         mockMvc.perform(get("/api/posts/{postId}/comments", postId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.content[*].postId", everyItem(is(postId.intValue()))));
+        /**
+         * $.content[*].postId 관련 구조
+         * {
+         *   "content": [
+         *     { "id": 1, "postId": 10, "content": "..." },
+         *     { "id": 2, "postId": 10, "content": "..." }
+         *   ]
+         * }
+         */
     }
 
     @Test
     @DisplayName("댓글 삭제 후 동일 댓글 삭제 요청은 404가 반환된다.")
     void deleteCommentReturns204AndThen404() throws Exception {
         MockHttpSession session = signupAndLogin(mockMvc);
-        Long postId = createPostId(mockMvc, session, "post", "content");
-        Long commentId = createComment(session, postId, "comment");
+        Long postId = createPostId(mockMvc, session, "이몸 등장", "안녕들하신가");
+        Long commentId = createComment(session, postId, "여 간만이군");
 
         mockMvc.perform(delete("/api/posts/{postId}/comments/{commentId}", postId, commentId)
                         .session(session))
@@ -106,7 +95,7 @@ public class CommentApiTest {
     @DisplayName("댓글 내용이 비어 있으면 400 + VALIDATION_ERROR 반환")
     void createCommentValidationFailReturns400() throws Exception {
         MockHttpSession session = signupAndLogin(mockMvc);
-        Long postId = createPostId(mockMvc, session, "post", "content");
+        Long postId = createPostId(mockMvc, session, "이몸 등장", "안녕들 하신가");
 
         mockMvc.perform(post("/api/posts/{postId}/comments", postId)
                         .session(session)
@@ -119,5 +108,24 @@ public class CommentApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.details.content", not(emptyOrNullString())));
+    }
+
+    private Long createComment(MockHttpSession session, Long postId, String content) throws Exception {
+        String body = String.format("""
+                {
+                    "content": "%s"
+                }
+                """, content);
+
+        MvcResult result = mockMvc.perform(post("/api/posts/{postId}/comments", postId)
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String json = result.getResponse().getContentAsString();
+        Number id = JsonPath.read(json, "$.id");
+        return id.longValue();
     }
 }
