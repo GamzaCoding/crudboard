@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -15,6 +16,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity // 이 클래스는 JPA가 관리하는 엔티티 라는 표시
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "posts")
+@Getter
 public class Post {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) // 자동 PK 생성
@@ -74,26 +76,6 @@ public class Post {
     public void update(String title, String content) {
         this.title = title;
         this.content = content;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
     }
 }
 
