@@ -1,29 +1,19 @@
-package com.example.crudboard.global.exception;
+package com.example.crudboard.global.error;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-@RestControllerAdvice
+//@RestControllerAdvice
 public class ApiExceptionHandler {
 
-    @ExceptionHandler(PostNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlePostNotFound(PostNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of("POST_NOT_FOUND", e.getMessage()));
-    }
+//    @ExceptionHandler(PostNotFoundException.class)
+//    public ResponseEntity<ErrorResponse> handlePostNotFound(PostNotFoundException e) {
+//        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                .body(ErrorResponse.of("POST_NOT_FOUND", e.getMessage()));
+//    }
 
-    @ExceptionHandler(CommentNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of("COMMENT_NOT_FOUND", e.getMessage()));
-    }
+//    @ExceptionHandler(CommentNotFoundException.class)
+//    public ResponseEntity<ErrorResponse> handleCommentNotFound(CommentNotFoundException e) {
+//        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                .body(ErrorResponse.of("COMMENT_NOT_FOUND", e.getMessage()));
+//    }
 
     /*
     MethodArgumentNotValidException은 @RequestBody, @Valid가 실패하면 터지는 예외다.
@@ -42,35 +32,35 @@ public class ApiExceptionHandler {
     5. Spring MVC는 HttpMessageConvert를 통해 Jackson이 ErrorResponse를 JONS으로 직렬화 해줌
     6. 최종적으로 HTTP response body에 직렬화된 JSON 내용을 작성해서 클라이언트에게 전송해줌
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
-        Map<String, String> fieldErrors = new LinkedHashMap<>();
-        e.getBindingResult().getFieldErrors()
-                .forEach(err -> fieldErrors.put(err.getField(), err.getDefaultMessage()));
+//    @ExceptionHandler(MethodArgumentNotValidException.class)
+//    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
+//        Map<String, String> fieldErrors = new LinkedHashMap<>();
+//        e.getBindingResult().getFieldErrors()
+//                .forEach(err -> fieldErrors.put(err.getField(), err.getDefaultMessage()));
+//
+//        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                .body(ErrorResponse.of("VALIDATION_ERROR", "Validation failed", fieldErrors));
+//    }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of("VALIDATION_ERROR", "Validation failed", fieldErrors));
-    }
 
-
-    @Schema(name = "ErrorResponse", description = "API 에러 응답 포맷")
-    public record ErrorResponse(
-            @Schema(example = "POST_NOT_FOUND")
-            String code,
-            @Schema(example = "Post not found, id=1")
-            String message,
-            Object details,
-            @Schema(example = "2026-02-04T14:57:49.437688")
-            LocalDateTime timestamp
-    ){
-        public static ErrorResponse of(String code, String message) {
-            return new ErrorResponse(code, message, null, java.time.LocalDateTime.now());
-        }
-
-        public static ErrorResponse of(String code, String message, Object details) {
-            return new ErrorResponse(code, message, details, LocalDateTime.now());
-        }
-    }
+//    @Schema(name = "ErrorResponse", description = "API 에러 응답 포맷")
+//    public record ErrorResponse(
+//            @Schema(example = "POST_NOT_FOUND")
+//            String code,
+//            @Schema(example = "Post not found, id=1")
+//            String message,
+//            Object details,
+//            @Schema(example = "2026-02-04T14:57:49.437688")
+//            LocalDateTime timestamp
+//    ){
+//        public static ErrorResponse of(String code, String message) {
+//            return new ErrorResponse(code, message, null, java.time.LocalDateTime.now());
+//        }
+//
+//        public static ErrorResponse of(String code, String message, Object details) {
+//            return new ErrorResponse(code, message, details, LocalDateTime.now());
+//        }
+//    }
 }
 /*
 @RestControllerAdvice

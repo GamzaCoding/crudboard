@@ -107,7 +107,9 @@ public class CommentApiTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.details.content", not(emptyOrNullString())));
+                .andExpect(jsonPath("$.fieldViolations", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.fieldViolations[0].field").value("content"))
+                .andExpect(jsonPath("$.fieldViolations[0].message", not(emptyOrNullString())));
     }
 
     private Long createComment(MockHttpSession session, Long postId, String content) throws Exception {

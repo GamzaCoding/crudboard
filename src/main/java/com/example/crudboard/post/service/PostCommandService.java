@@ -1,6 +1,7 @@
 package com.example.crudboard.post.service;
 
-import com.example.crudboard.global.exception.PostNotFoundException;
+import com.example.crudboard.global.error.ApiException;
+import com.example.crudboard.global.error.ErrorCode;
 import com.example.crudboard.post.Post;
 import com.example.crudboard.post.repository.PostRepository;
 import com.example.crudboard.post.dto.PostCreateRequest;
@@ -25,13 +26,13 @@ public class PostCommandService {
 
     public void update(Long id, PostUpdateRequest request) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
+                .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
         post.update(request.title(), request.content());
     }
 
     public void delete(Long id) {
         if (!postRepository.existsById(id)) {
-            throw new PostNotFoundException(id);
+            throw new ApiException(ErrorCode.POST_NOT_FOUND);
         }
         postRepository.deleteById(id);
     }

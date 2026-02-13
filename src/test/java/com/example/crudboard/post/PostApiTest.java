@@ -78,7 +78,7 @@ public class PostApiTest {
         mockMvc.perform(get("/api/posts/99999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
-                .andExpect(jsonPath("$.message", containsString("Post not found")))
+                .andExpect(jsonPath("$.message", containsString("게시글을 찾을 수 없습니다.")))
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 

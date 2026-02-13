@@ -1,6 +1,6 @@
 package com.example.crudboard.post;
 
-import com.example.crudboard.global.exception.ApiExceptionHandler.ErrorResponse;
+import com.example.crudboard.global.error.ApiError;
 import com.example.crudboard.global.dto.PageResponse;
 import com.example.crudboard.post.dto.PostCreateRequest;
 import com.example.crudboard.post.service.PostQueryService;
@@ -110,7 +110,7 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = PostResponse.class))),
             @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
     })
     @GetMapping("/{id}")
     public PostResponse get(@PathVariable Long id) {
@@ -160,7 +160,7 @@ public class PostController {
             @ApiResponse(responseCode = "204", description = "수정 성공"),
             @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)))
+                            schema = @Schema(implementation = ApiError.class)))
     })
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(@PathVariable Long id,
@@ -174,7 +174,7 @@ public class PostController {
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
             @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)))
+                            schema = @Schema(implementation = ApiError.class)))
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

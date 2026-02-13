@@ -5,8 +5,8 @@ import com.example.crudboard.comment.dto.CommentCreateRequest;
 import com.example.crudboard.comment.dto.CommentResponse;
 import com.example.crudboard.comment.dto.CommentUpdateRequest;
 import com.example.crudboard.comment.repository.CommentRepository;
-import com.example.crudboard.global.exception.CommentNotFoundException;
-import com.example.crudboard.global.exception.PostNotFoundException;
+import com.example.crudboard.global.error.ApiException;
+import com.example.crudboard.global.error.ErrorCode;
 import com.example.crudboard.post.Post;
 import com.example.crudboard.post.repository.PostRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ public class CommentCommandService {
 
     public CommentResponse create(Long postId, CommentCreateRequest request) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new PostNotFoundException(postId));
+                .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
 
         Comment comment = new Comment(post, request.content());
         Comment savedComment = commentRepository.save(comment);
@@ -46,11 +46,11 @@ public class CommentCommandService {
     public CommentResponse update(Long postId, Long commentId, CommentUpdateRequest request) {
         // "해당 게시글의 댓글" 인지 보장
         if (!commentRepository.existsByIdAndPostId(commentId, postId)) {
-            throw new CommentNotFoundException(commentId);
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentNotFoundException(commentId));
+                .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
 
         comment.update(request.content());
 
@@ -65,7 +65,7 @@ public class CommentCommandService {
 
     public void delete(Long postId, Long commentId) {
         if (!commentRepository.existsByIdAndPostId(commentId, postId)) {
-            throw  new CommentNotFoundException(commentId);
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }
         commentRepository.deleteByIdAndPostId(commentId, postId);
     }

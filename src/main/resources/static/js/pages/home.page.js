@@ -1,5 +1,6 @@
 import { safeTrim } from "../core/dom.js";
 import { getMeOrNull, login, signup, logout } from "../api/auth.api.js";
+import { toUserMessage } from "../core/errors.js";
 
 const card = document.getElementById("card");
 const errorBox = document.getElementById("errorBox");
@@ -38,21 +39,6 @@ function clearError() {
     errorBox.textContent = "";
 }
 
-function errorMessage(e) {
-    // core/http.js에서 err.body에 원문을 넣어두는 패턴을 쓰고 있으니 최대한 사용자 친화적으로 추출
-    const body = e?.body;
-    if (body) {
-        try {
-            const json = JSON.parse(body);
-            return json?.message ?? json?.error ?? e?.message ?? String(e);
-        } catch {
-            // body가 그냥 text일 때
-            return body || e?.message || String(e);
-        }
-    }
-    return e?.message ?? String(e);
-}
-
 function showLoggedIn(user) {
     guestBox.style.display = "none";
     loggedInBox.style.display = "block";
@@ -85,7 +71,7 @@ loginBtn.addEventListener("click", async () => {
         await login(email, password);
         location.href = "/posts";
     } catch (e) {
-        showError(errorMessage(e));
+        showError(toUserMessage(e));
     } finally {
         setLoading(false);
     }
@@ -107,7 +93,7 @@ signupBtn.addEventListener("click", async () => {
         await login(email, password);
         location.href = "/posts";
     } catch (e) {
-        showError(errorMessage(e));
+        showError(toUserMessage(e));
     } finally {
         setLoading(false);
     }
@@ -120,7 +106,7 @@ logoutBtn?.addEventListener("click", async () => {
         await logout();
         location.reload();
     } catch (e) {
-        showError(errorMessage(e));
+        showError(toUserMessage(e));
     } finally {
         setLoading(false);
     }
@@ -149,7 +135,7 @@ async function init() {
     } catch (e) {
         // /me가 500 등으로 터지면 여기로
         showGuest();
-        showError(errorMessage(e));
+        showError(toUserMessage(e));
     } finally {
         setLoading(false);
     }

@@ -1,12 +1,13 @@
 package com.example.crudboard.auth;
 
 import com.example.crudboard.auth.dto.AuthRequest;
+import com.example.crudboard.global.error.ApiException;
+import com.example.crudboard.global.error.ErrorCode;
 import com.example.crudboard.user.User;
 import com.example.crudboard.user.UserRepository;
 import com.example.crudboard.user.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,7 +37,7 @@ public class AuthService {
 
     public void login(AuthRequest authRequest, HttpServletRequest request) {
         User user = userRepository.findByEmail(authRequest.email())
-                .orElseThrow(() -> new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.BAD_VALUE_OF_EMAIL_OR_PASSWORD));
         validatePassword(authRequest, user);
         inputAuthToSession(request, user);
     }
@@ -51,7 +52,7 @@ public class AuthService {
 
     private void validatePassword(AuthRequest authRequest, User user) {
         if (!passwordEncoder.matches(authRequest.password(), user.getPasswordHash())) {
-            throw new BadCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new ApiException(ErrorCode.BAD_VALUE_OF_EMAIL_OR_PASSWORD);
         }
     }
 
@@ -85,7 +86,7 @@ public class AuthService {
 
     private void validateAlreadySignup(AuthRequest authRequest) {
         if (userRepository.existsByEmail(authRequest.email())) {
-            throw new IllegalArgumentException("이미 가입된 이메일 입니다.");
+            throw new ApiException(ErrorCode.DUPLICATE_EMAIL);
         }
     }
 }

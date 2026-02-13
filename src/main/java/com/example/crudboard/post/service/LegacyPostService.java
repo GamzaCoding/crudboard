@@ -1,6 +1,5 @@
 package com.example.crudboard.post.service;
 
-import com.example.crudboard.global.exception.PostNotFoundException;
 import com.example.crudboard.global.dto.PageResponse;
 import com.example.crudboard.post.Post;
 import com.example.crudboard.post.repository.PostRepository;
@@ -82,12 +81,12 @@ public class LegacyPostService {
     그래서 수정 로직에서 save를 다시 호출하지 않아도 변경이 반영될 수 있습니다.
     조회 전용 트랜잭션(readOnly)은 이런 변경 감지 비용을 줄이는 데 도움이 됩니다.
      */
-    @Transactional(readOnly = true)
-    public PostResponse get(Long id) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
-        return PostResponse.from(post);
-    }
+//    @Transactional(readOnly = true)
+//    public PostResponse get(Long id) {
+//        Post post = postRepository.findById(id)
+//                .orElseThrow(() -> new PostNotFoundException(id));
+//        return PostResponse.from(post);
+//    }
 
     /*
     JpaRepository는 findAll(Pageable pageable)을 기본적으로 제공한다.
@@ -134,20 +133,20 @@ public class LegacyPostService {
     그래서 서버는 "허용 최대 size"를 정해주는게 일반적이다.
     그래서 "들어온 Pageable을 그대로 믿지 않고, 서버 정책에 맞게 안전한 Pageable로 변환한다"
      */
-    @Transactional(readOnly = true)
-    public PageResponse<PostResponse> list(String keyword, Pageable pageable) {
-        int size = Math.min(pageable.getPageSize(), MAX_SIZE);
-        Pageable safePageable = PageRequest.of(pageable.getPageNumber(), size, pageable.getSort());
-
-        String trimKeyword = (keyword == null) ? null : keyword.trim();
-        var page = StringUtils.hasText(trimKeyword)
-                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(trimKeyword, trimKeyword, safePageable)
-                .map(PostResponse::from)
-                : postRepository.findAll(safePageable)
-                        .map(PostResponse::from);
-
-        return PageResponse.from(page);
-    }
+//    @Transactional(readOnly = true)
+//    public PageResponse<PostResponse> list(String keyword, Pageable pageable) {
+//        int size = Math.min(pageable.getPageSize(), MAX_SIZE);
+//        Pageable safePageable = PageRequest.of(pageable.getPageNumber(), size, pageable.getSort());
+//
+//        String trimKeyword = (keyword == null) ? null : keyword.trim();
+//        var page = StringUtils.hasText(trimKeyword)
+//                ? postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(trimKeyword, trimKeyword, safePageable)
+//                .map(PostResponse::from)
+//                : postRepository.findAll(safePageable)
+//                        .map(PostResponse::from);
+//
+//        return PageResponse.from(page);
+//    }
 
     /*
     왜 save()가 없는데도 DB가 바뀌나?
@@ -155,11 +154,11 @@ public class LegacyPostService {
     값이 바뀌면 Hibernate가 dirty checking(변경감지)로 커밋 시 UPDATE 쿼리를 자동으로 수행
     조회 -> 엔티티 변경 -> 커밋 시 자동으로 UPDATE 쿼리 날림
      */
-    public void update(Long id, PostUpdateRequest request) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new PostNotFoundException(id));
-        post.update(request.title(), request.content());
-    }
+//    public void update(Long id, PostUpdateRequest request) {
+//        Post post = postRepository.findById(id)
+//                .orElseThrow(() -> new PostNotFoundException(id));
+//        post.update(request.title(), request.content());
+//    }
 
     /*
     왜 existsById()로 먼저 확인하지?
@@ -175,10 +174,10 @@ public class LegacyPostService {
         엔티티가 관계를 많이 갖고 있으면(연간관계) 설정에 따라 무거워질 수 있다.
         단, 삭제 전 "검증/권한" 같은 로직이 필요하다면, 엔티티를 가져오는 이 로직이 더 좋을 수 있다.
      */
-    public void delete(Long id) {
-        if (!postRepository.existsById(id)) {
-            throw new PostNotFoundException(id);
-        }
-        postRepository.deleteById(id);
-    }
+//    public void delete(Long id) {
+//        if (!postRepository.existsById(id)) {
+//            throw new PostNotFoundException(id);
+//        }
+//        postRepository.deleteById(id);
+//    }
 }
