@@ -1,10 +1,45 @@
+<!-- src/main/resources/templates/comments/comments.html -->
 <!doctype html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8" />
-    <title>Comments</title>
+    <title>Comments Fragment</title>
 </head>
 <body>
-<!-- 여기엔 댓글 컴포넌트만 넣고, 상세 페이지에서 th:replace로 끼우는 방식도 가능 -->
+
+<section th:fragment="comments">
+    <div style="margin-top:16px;">
+        <div class="row" style="align-items:flex-end;">
+            <div style="flex:1;">
+                <label for="commentInput">댓글 작성</label>
+                <textarea id="commentInput" placeholder="댓글을 입력하세요 (Ctrl+Enter로 등록)"></textarea>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; min-width:180px;">
+                <button class="primary" id="commentCreateBtn">댓글 등록</button>
+
+                <div class="muted">댓글 페이지 크기</div>
+                <select id="commentSize">
+                    <option value="5">5개</option>
+                    <option value="10" selected>10개</option>
+                    <option value="20">20개</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:12px;">
+            <div class="muted">
+                <span class="pill" id="commentSummary">-</span>
+                <span class="pill" id="commentPageInfo">page - / -</span>
+            </div>
+            <div class="pager">
+                <button id="commentPrevBtn">이전</button>
+                <button id="commentNextBtn">다음</button>
+            </div>
+        </div>
+
+        <div id="commentList" style="margin-top:12px;"></div>
+    </div>
+</section>
+
 </body>
 </html>
