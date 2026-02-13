@@ -235,9 +235,9 @@ Base URL: `http://localhost:8080`
   - `CommentController`
   - `service`
     - `CommentCommandService`
-    - `CommentQuerySerive`
+    - `CommentQueryService`
   - `repository`
-    - `CommentRepositoy`
+    - `CommentRepository`
   - `dto`
     - `CommentCreateRequest`
     - `CommentResponse`

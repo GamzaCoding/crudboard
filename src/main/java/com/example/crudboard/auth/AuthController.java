@@ -30,14 +30,7 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<Void> signup(@Valid @RequestBody AuthRequest authRequest, BindingResult bindingResult) {
-
-        if (bindingResult.hasErrors()) {
-            bindingResult.getFieldErrors().forEach(
-                    e -> log.info("validation error field={}, rejectedValue={}, msg={}", e.getField(), e.getRejectedValue(), e.getDefaultMessage())
-            );
-        }
-        log.info("여기까지는 나오나?");
+    public ResponseEntity<Void> signup(@Valid @RequestBody AuthRequest authRequest) {
         authService.signup(authRequest);
         return ResponseEntity.status(201).build();
     }
