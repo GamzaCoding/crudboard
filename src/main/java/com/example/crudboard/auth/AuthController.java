@@ -2,14 +2,13 @@ package com.example.crudboard.auth;
 
 import com.example.crudboard.auth.dto.AuthRequest;
 import com.example.crudboard.auth.dto.MeResponse;
-import com.example.crudboard.user.User;
 import com.example.crudboard.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.validation.BindingResult;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,15 +47,14 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
     @GetMapping("/me")
-    public ResponseEntity<MeResponse> me(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(404).build();
+    public ResponseEntity<MeResponse> me(@AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        return userRepository.findById(userId)
+                .map(user -> new MeResponse(user.getId(), user.getEmail(), user.getRole().name()))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
 
-        Long userId = (Long) authentication.getPrincipal();
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("세션 사용자 정보가 DB에 없습니다. userId=" + userId));
-
-        return ResponseEntity.ok(new MeResponse(user.getId(), user.getEmail(), user.getRole().name()));
     }
 }

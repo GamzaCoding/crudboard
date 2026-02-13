@@ -58,9 +58,9 @@ public class AuthApiTest {
     }
 
     @Test
-    @DisplayName("로그인하지 않으면 /me에서 404가 반환된다.")
-    void meWithoutLoginReturns404() throws Exception {
+    @DisplayName("로그인하지 않으면 /me에서 401이 반환된다.")
+    void meWithoutLoginReturns401() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isUnauthorized());
     }
 }

@@ -35,7 +35,6 @@ public class SecurityConfig {
             PasswordEncoder encoder,
             @Value("${app.security.admin.username}") String username,
             @Value("${app.security.admin.password}") String password) {
-        log.info("ADMIN_USERNAME={}, ADMIN_PASSWORD length={}", username, password == null ? null : password.length());
         return new InMemoryUserDetailsManager(
                 User.withUsername(username)
                         .password(encoder.encode(password))
@@ -93,17 +92,4 @@ public class SecurityConfig {
         http.headers(h -> h.frameOptions(FrameOptionsConfig::sameOrigin));
         return http.build();
     }
-
-    // 2. 9.(월) 트러블 슈팅 내역
-    /**
-     * 2. 9.(월) 트러블 슈팅 내역
-     * 현상 : http://localhost:8080/h2-console/ 접속시 ERROR 403 이슈
-     * 원인 흐름
-     * 	1.	/h2-console/ 요청이 dbConsoleChain을 탐
-     * 	2.	익명(ROLE_ANONYMOUS)이라 hasRole("ADMIN")에서 거절됨
-     * 	3.	ExceptionTranslationFilter가 AuthenticationEntryPoint로 보내려고 함 (여기까지는 맞음)
-     * 	4.	그런데 응답이 에러로 처리되면서 톰캣이 ERROR 디스패치로 /error로 포워드
-     * 	5.	/error는 appChain이 잡는데, appChain은 anyRequest().authenticated() + (httpBasic/formLogin 둘 다 disable)
-     * 	6.	그래서 /error에서 Http403ForbiddenEntryPoint가 찍히면서 최종적으로 403 화면이 사용자에게 보임
-     */
 }
