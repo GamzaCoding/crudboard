@@ -69,7 +69,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // 공개 페이지
-                        .requestMatchers("/", "/home").permitAll()
+                        .requestMatchers("/", "/home", "/auth/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/posts/**").permitAll()
                         .requestMatchers("/error").permitAll()

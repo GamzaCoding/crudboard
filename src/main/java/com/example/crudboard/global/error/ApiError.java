@@ -8,7 +8,7 @@ public record ApiError(
         String message,
         List<FieldViolation> fieldViolations,
         String path,
-        Instant timestamp // 이거 localDataTime이 좋지 안나?
+        Instant timestamp
 ) {
     public record FieldViolation(String field, String message) {
 

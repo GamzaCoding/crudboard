@@ -12,14 +12,17 @@ public class PostPageController {
     public String listPage() {
         return "posts/list";
     }
+
     @GetMapping("/new")
     public String newPage() {
         return "posts/new";
     }
+
     @GetMapping("/{id}")
     public String detailPage() {
         return "posts/detail";
     }
+
     @GetMapping("/{id}/edit")
     public String editPage() {
         return "posts/edit";

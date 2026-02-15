@@ -2,11 +2,12 @@ package com.example.crudboard.auth;
 
 import com.example.crudboard.auth.dto.AuthRequest;
 import com.example.crudboard.auth.dto.MeResponse;
+import com.example.crudboard.global.error.ApiException;
+import com.example.crudboard.global.error.ErrorCode;
 import com.example.crudboard.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,15 +47,16 @@ public class AuthController {
         authService.logout(request);
         return ResponseEntity.noContent().build();
     }
+
     @GetMapping("/me")
     public ResponseEntity<MeResponse> me(@AuthenticationPrincipal Long userId) {
         if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
+
         return userRepository.findById(userId)
                 .map(user -> new MeResponse(user.getId(), user.getEmail(), user.getRole().name()))
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
-
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
     }
 }

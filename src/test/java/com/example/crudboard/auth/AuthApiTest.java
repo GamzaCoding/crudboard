@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.endsWith;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -58,9 +59,12 @@ public class AuthApiTest {
     }
 
     @Test
-    @DisplayName("로그인하지 않으면 /me에서 401이 반환된다.")
-    void meWithoutLoginReturns401() throws Exception {
+    @DisplayName("로그인하지 않으면 /me에서 401과 표준 에러 JSON이 반환된다.")
+    void meWithoutLoginReturns401WithErrorBody() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("인증이 필요합니다."))
+                .andExpect(jsonPath("$.path", endsWith("/api/auth/me")));
     }
 }
