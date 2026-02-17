@@ -17,9 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class CommentCommandService {
 
-    @Autowired // 이거 물어보자
     private final PostRepository postRepository;
-    @Autowired
     private final CommentRepository commentRepository;
 
     public CommentCommandService(PostRepository postRepository, CommentRepository commentRepository) {
@@ -45,9 +43,7 @@ public class CommentCommandService {
 
     public CommentResponse update(Long postId, Long commentId, CommentUpdateRequest request) {
         // "해당 게시글의 댓글" 인지 보장
-        if (!commentRepository.existsByIdAndPostId(commentId, postId)) {
-            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
-        }
+        validateIsExistComment(postId, commentId);
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.COMMENT_NOT_FOUND));
@@ -63,10 +59,14 @@ public class CommentCommandService {
         );
     }
 
-    public void delete(Long postId, Long commentId) {
+    private void validateIsExistComment(Long postId, Long commentId) {
         if (!commentRepository.existsByIdAndPostId(commentId, postId)) {
             throw new ApiException(ErrorCode.COMMENT_NOT_FOUND);
         }
+    }
+
+    public void delete(Long postId, Long commentId) {
+        validateIsExistComment(postId, commentId);
         commentRepository.deleteByIdAndPostId(commentId, postId);
     }
 }
