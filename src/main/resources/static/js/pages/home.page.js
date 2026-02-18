@@ -54,7 +54,7 @@ function showLoggedIn(user) {
 function showGuest() {
     loggedInBox.style.display = "none";
     guestBox.style.display = "block";
-    subtext.textContent = "로그인/회원가입 또는 게스트로 입장하세요.";
+    subtext.textContent = "얼렁뚱땅 게시판에 오신걸 환영합니다";
 }
 
 // -------------------- Events --------------------
